@@ -24,14 +24,21 @@
 
 #include "nvs_flash.h"
 
-#define UPDATE_BTN GPIO_NUM_5
+#define UPDATE_BTN	GPIO_NUM_5
+#define LED		GPIO_NUM_18
 
-static const char *TAG = "simple_ota_example";
+// a 0 means a non-shared interrupt level of 1, 2, or 3.
+// see https://github.com/espressif/esp-idf/blob/ad3b820e7/components/esp32/include/esp_intr_alloc.h
+// for the esp_intr_alloc_intrstatus function.
+#define ESP_INTR_FLAG_DEFAULT 0
+
+static const char *TAG = "fota_https";
 extern const uint8_t server_cert_pem_start[] asm("_binary_ca_cert_pem_start");
 extern const uint8_t server_cert_pem_end[] asm("_binary_ca_cert_pem_end");
 
 /* FreeRTOS event group to signal when we are connected & ready to make a request */
 static EventGroupHandle_t wifi_event_group;
+static xQueueHandle gpio_evt_queue = NULL;
 
 /* The event group allows multiple bits for each event,
    but we only care about one event - are we connected
@@ -107,8 +114,9 @@ static void initialise_wifi(void)
 	ESP_ERROR_CHECK( esp_wifi_start() );
 }
 
-void simple_ota_example_task(void * pvParameter)
+void ota_update(void *pvParameter)
 {
+	uint32_t upd_btn;
 	ESP_LOGI(TAG, "Starting OTA example");
 
 	/* Wait for the callback to set the CONNECTED_BIT in the
@@ -119,7 +127,9 @@ void simple_ota_example_task(void * pvParameter)
 	ESP_LOGI(TAG, "Connected to WiFi network!");
 	
 	ESP_LOGI(TAG, "Waiting for user to press button...");
-	while (!gpio_get_level(GPIO_NUM_5));
+	while (1) {
+		if(xQueueReceive(gpio_evt_queue, &upd_btn, portMAX_DELAY)) break;
+	}
 
 	ESP_LOGI(TAG, "Button pressed, updating...");
 
@@ -134,8 +144,27 @@ void simple_ota_example_task(void * pvParameter)
 	} else {
 		ESP_LOGE(TAG, "Firmware upgrade failed");
 	}
+
+	// delete this task after being run once
+	vTaskDelete(NULL);
+}
+
+static void IRAM_ATTR gpio_isr_handler(void *arg)
+{
+	uint32_t gpio_num = (uint32_t) arg;
+	if (gpio_num == UPDATE_BTN) {
+		xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
+	}
+}
+
+void blink(void *pvParameter)
+{
+	ESP_LOGI(TAG, "Starting blink task");
 	while (1) {
-		vTaskDelay(1000 / portTICK_PERIOD_MS);
+		gpio_set_level(LED, 1);
+		vTaskDelay(500 / portTICK_RATE_MS);
+		gpio_set_level(LED, 0);
+		vTaskDelay(500 / portTICK_RATE_MS);
 	}
 }
 
@@ -154,17 +183,30 @@ void app_main()
 	ESP_ERROR_CHECK( err );
 
 	initialise_wifi();
+	
+	// queue to handle gpio events from ISR
+	gpio_evt_queue = xQueueCreate(2, sizeof(uint32_t));
 
-	// set up button to trigger update, by polling
+	// set up button to trigger update on interrupt
 	gpio_config_t io_conf = {
 		.pin_bit_mask	= (1ULL << UPDATE_BTN),
 		.mode		= GPIO_MODE_INPUT,
 		.pull_up_en	= 0,
 		.pull_down_en	= 1,
-		.intr_type	= GPIO_INTR_DISABLE
+		.intr_type	= GPIO_PIN_INTR_POSEDGE
 	};
 
 	gpio_config(&io_conf);
+	gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
+	gpio_isr_handler_add(UPDATE_BTN, gpio_isr_handler, (void *) UPDATE_BTN);
 
-	xTaskCreate(&simple_ota_example_task, "ota_example_task", 8192, NULL, 5, NULL);
+	// set up LED
+	io_conf.pin_bit_mask = (1ULL << LED);
+	io_conf.mode = GPIO_MODE_OUTPUT;
+	io_conf.pull_down_en = 0;
+	io_conf.intr_type = GPIO_PIN_INTR_DISABLE;
+	gpio_config(&io_conf);
+
+	xTaskCreate(&blink, "blink_task", 2048, NULL, 10, NULL);
+	xTaskCreate(&ota_update, "ota_update_task", 8192, NULL, 5, NULL);
 }
