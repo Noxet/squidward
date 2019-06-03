@@ -25,7 +25,7 @@
 #include "nvs_flash.h"
 
 #define UPDATE_BTN	GPIO_NUM_5
-#define LED		GPIO_NUM_18
+#define LED		GPIO_NUM_19
 
 // a 0 means a non-shared interrupt level of 1, 2, or 3.
 // see https://github.com/espressif/esp-idf/blob/ad3b820e7/components/esp32/include/esp_intr_alloc.h
@@ -117,7 +117,7 @@ static void initialise_wifi(void)
 void ota_update(void *pvParameter)
 {
 	uint32_t upd_btn;
-	ESP_LOGI(TAG, "Starting OTA example");
+	ESP_LOGI(TAG, "Starting OTA task");
 
 	/* Wait for the callback to set the CONNECTED_BIT in the
 	   event group.
@@ -126,26 +126,28 @@ void ota_update(void *pvParameter)
 			false, true, portMAX_DELAY);
 	ESP_LOGI(TAG, "Connected to WiFi network!");
 	
-	ESP_LOGI(TAG, "Waiting for user to press button...");
 	while (1) {
-		if(xQueueReceive(gpio_evt_queue, &upd_btn, portMAX_DELAY)) break;
+		ESP_LOGI(TAG, "Waiting for user to initiate update...");
+		while (1) {
+			if(xQueueReceive(gpio_evt_queue, &upd_btn, portMAX_DELAY)) break;
+		}
+
+		ESP_LOGI(TAG, "Update requested, updating...");
+
+		esp_http_client_config_t config = {
+			.url = CONFIG_EXAMPLE_FIRMWARE_UPGRADE_URL,
+			.cert_pem = (char *)server_cert_pem_start,
+			.event_handler = _http_event_handler,
+		};
+		esp_err_t ret = esp_https_ota(&config);
+		if (ret == ESP_OK) {
+			esp_restart();
+		} else {
+			ESP_LOGE(TAG, "Firmware upgrade failed");
+		}
 	}
 
-	ESP_LOGI(TAG, "Button pressed, updating...");
-
-	esp_http_client_config_t config = {
-		.url = CONFIG_EXAMPLE_FIRMWARE_UPGRADE_URL,
-		.cert_pem = (char *)server_cert_pem_start,
-		.event_handler = _http_event_handler,
-	};
-	esp_err_t ret = esp_https_ota(&config);
-	if (ret == ESP_OK) {
-		esp_restart();
-	} else {
-		ESP_LOGE(TAG, "Firmware upgrade failed");
-	}
-
-	// delete this task after being run once
+	// should not get here, but if so, delete this task
 	vTaskDelete(NULL);
 }
 
