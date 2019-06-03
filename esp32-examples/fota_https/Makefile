@@ -3,7 +3,7 @@
 # project subdirectory.
 #
 
-PROJECT_NAME := simple_ota
+PROJECT_NAME := fota_https
 
 include $(IDF_PATH)/make/project.mk
 
