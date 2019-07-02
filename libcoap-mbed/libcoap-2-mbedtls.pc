@@ -1,0 +1,12 @@
+prefix=/usr/local
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: libcoap
+Description: C-Implementation of CoAP.
+Version: 4.2.0
+URL: https://libcoap.net/
+Libs: -L${libdir} -lcoap-2-mbedtls
+Libs.private: -lmbedtls -lmbedcrypto -lmbedx509
+Cflags: -I${includedir}

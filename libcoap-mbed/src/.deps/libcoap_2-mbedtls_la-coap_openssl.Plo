@@ -1,0 +1,6 @@
+src/libcoap_2-mbedtls_la-coap_openssl.lo: src/coap_openssl.c \
+ /usr/include/stdc-predef.h coap_config.h
+
+/usr/include/stdc-predef.h:
+
+coap_config.h:

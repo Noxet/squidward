@@ -1,0 +1,6 @@
+src/libcoap_2-mbedtls_la-coap_tinydtls.lo: src/coap_tinydtls.c \
+ /usr/include/stdc-predef.h coap_config.h
+
+/usr/include/stdc-predef.h:
+
+coap_config.h:
