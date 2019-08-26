@@ -1,6 +1,0 @@
-src/libcoap_2-mbedtls_la-coap_notls.lo: src/coap_notls.c \
- /usr/include/stdc-predef.h coap_config.h
-
-/usr/include/stdc-predef.h:
-
-coap_config.h:
