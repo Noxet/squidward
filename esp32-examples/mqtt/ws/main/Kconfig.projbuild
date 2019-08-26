@@ -1,0 +1,9 @@
+menu "Example Configuration"
+
+    config BROKER_URI
+        string "Broker URL"
+        default "ws://iot.eclipse.org:80/ws"
+        help
+            URL of an mqtt broker which this example connects to.
+
+endmenu
