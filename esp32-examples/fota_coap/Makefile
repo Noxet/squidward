@@ -3,9 +3,11 @@
 # project subdirectory.
 #
 
-PROJECT_NAME := coap_server
-
-EXTRA_COMPONENT_DIRS = $(IDF_PATH)/examples/common_components/protocol_examples_common
+PROJECT_NAME := fota_coap
 
 include $(IDF_PATH)/make/project.mk
 
+server:
+	cp ca_cert.pem build
+	cp ca_key.pem build
+	cd build && openssl s_server -WWW -key ca_key.pem -cert ca_cert.pem -port 8070
