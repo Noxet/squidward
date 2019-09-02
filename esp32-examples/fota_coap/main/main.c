@@ -25,6 +25,7 @@ extern const uint8_t server_cert_pem_end[] asm("_binary_ca_cert_pem_end");
 
 static xQueueHandle gpio_evt_queue = NULL;
 
+const char *TAG = "fota_coap";
 
 static void http_cleanup(esp_http_client_handle_t client)
 {
