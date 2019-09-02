@@ -15,19 +15,14 @@
 #include "esp_event_loop.h"
 #include "esp_log.h"
 #include "esp_ota_ops.h"
+#include "esp_http_client.h"
 #include "esp_flash_partitions.h"
 #include "esp_partition.h"
-
-#include "libcoap.h"
-#include "coap_dtls.h"
-#include "coap.h"
 
 #include "driver/gpio.h"
 
 #include "nvs.h"
 #include "nvs_flash.h"
-
-#define COAP_DEFAULT_TIME_SEC 5
 
 #define EXAMPLE_WIFI_SSID CONFIG_WIFI_SSID
 #define EXAMPLE_WIFI_PASS CONFIG_WIFI_PASSWORD
@@ -35,8 +30,13 @@
 #define BUFFSIZE 1024
 #define HASH_LEN 32 /* SHA-256 digest length */
 
-#define UPD_BTN	GPIO_NUM_5
-#define LED	GPIO_NUM_19
+#define UPDATE_BTN	GPIO_NUM_5
+#define LED		GPIO_NUM_18
+
+/* 0 means a non-shared interrupt level of 1, 2, or 3.
+ * see the esp_intr_alloc.h file for the esp_alloc_intrstatus function.
+ */
+#define ESP_INTR_FLAG_DEFAULT 0
 
 static const char *TAG = "fota_coap";
 /*an ota data write buffer ready to write to the flash*/
@@ -150,7 +150,7 @@ static void ota_example_task(void *pvParameter)
 
 	ESP_LOGI(TAG, "Waiting for user to initiate update...");
 	while (1) {
-		if(xQueueReceive(gpio_evt_queue, &upd_btn, portMAX_DELAY)) break;
+		if (xQueueReceive(gpio_evt_queue, &upd_btn, portMAX_DELAY)) break;
 	}
 
 	esp_http_client_config_t config = {
@@ -233,17 +233,17 @@ static void ota_example_task(void *pvParameter)
 	return ;
 }
 
-static void update_isr_handler(void *arg)
+static void gpio_isr_handler(void *arg)
 {
-	uint32_t gpio_num = (uint32_t) arg; // haxxy hax
-	if (gpio_num == UPD_BTN) {
+	uint32_t gpio_num = (uint32_t) arg;
+	if (gpio_num == UPDATE_BTN) {
 		xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
 	}
 }
 
 void blink(void *pvParameter)
 {
-	ESP_LOGI(TAG, "Starting blink task");
+	ESP_LOGI(TAG, "Starting blink task...");
 	while (1) {
 		gpio_set_level(LED, 1);
 		vTaskDelay(500 / portTICK_RATE_MS);
@@ -285,14 +285,13 @@ void app_main()
 		err = nvs_flash_init();
 	}
 	ESP_ERROR_CHECK( err );
-	
+
 	initialise_wifi();
 
-	// queue to handle gpio events from ISR
-	gpio_evt_queue = xQueueCreate(2, sizeof(uint32_t));
+	gpio_evt_queue = xQueueCreate(2,  sizeof(uint32_t));
 
 	gpio_config_t io_conf = {
-		.pin_bit_mask	= (1ULL << UPD_BTN),
+		.pin_bit_mask	= (1ULL << UPDATE_BTN),
 		.mode		= GPIO_MODE_INPUT,
 		.pull_up_en	= 0,
 		.pull_down_en	= 1,
@@ -300,10 +299,12 @@ void app_main()
 	};
 
 	gpio_config(&io_conf);
-	gpio_install_isr_service(0); // TODO: Add a the ESP_INTR_FLAG_X flag
-	gpio_isr_handler_add(UPD_BTN, update_isr_handler, (void *) UPD_BTN);
 
-	// set up LED
+	// per-pin GPIO interrupts
+	gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
+	gpio_isr_handler_add(UPDATE_BTN, gpio_isr_handler, (void *) UPDATE_BTN);
+
+	// configure LED
 	io_conf.pin_bit_mask = (1ULL << LED);
 	io_conf.mode = GPIO_MODE_OUTPUT;
 	io_conf.pull_down_en = 0;
