@@ -99,7 +99,7 @@ void dtls_close()
 	/*
 	 * 8. Done, cleanly close the connection
 	 */
-	ESP_LOGI(TAG, "  . Closing the connection..." ;
+	ESP_LOGI(TAG, "  . Closing the connection...");
 
 	/* No error checking, the connection might be closed already */
 	do ret = mbedtls_ssl_close_notify(&ssl);

@@ -22,7 +22,7 @@
 #define mbedtls_realloc(a,b) realloc(a,b)
 #define mbedtls_strdup(a) strdup(a)
 
-#define SERVER_PORT "1337"
+#define SERVER_PORT "1338"
 #define SERVER_NAME "192.168.12.1"
 
 #define MAX_RETRY	5

@@ -37,11 +37,14 @@ extern const uint8_t server_root_cert_pem_end[]   asm("_binary_server_root_cert_
 
 static void https_get_task(void *pvParameters)
 {
-	char *msg = "This is a test 1 2 1 2";
+	//char *msg = "This is a test 1 2 1 2";
 	unsigned char buf[1024];
 
+	// TODO: Add length to dtls_write, do NOT use strcpy
+	char coap_get[] = {0x40, 0x01, 0x75, 0xd5, 0x72, 0x05, 0x3a, 0x00};
+
 	dtls_setup();
-	dtls_write(msg);
+	dtls_write(coap_get);
 	dtls_read(buf, sizeof(buf));
 
 	dtls_close();
