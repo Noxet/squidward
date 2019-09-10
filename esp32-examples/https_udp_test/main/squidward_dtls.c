@@ -9,52 +9,43 @@ static mbedtls_timing_delay_context timer;
 static mbedtls_ssl_context ssl;
 static mbedtls_net_context server_fd;
 
-#define MESSAGE "This is a test 1 2 1 2"
 
 void dtls_write(char *msg)
 {
 	int ret, len;
 
-	ESP_LOGI(TAG, "  > Write to server:" );
+	ESP_LOGI(TAG, "  > Write to server:");
 
-	//len = strlen(msg);
-	len = sizeof(MESSAGE) - 1;
+	len = strlen(msg);
 
-	mbedtls_printf("SENDING - %s - with length - %d\n", msg, len);
-
-	do ret = mbedtls_ssl_write( &ssl, (unsigned char *) MESSAGE, len );
+	do ret = mbedtls_ssl_write(&ssl, (unsigned char *) msg, len);
 	while( ret == MBEDTLS_ERR_SSL_WANT_READ ||
 			ret == MBEDTLS_ERR_SSL_WANT_WRITE );
 
 	if( ret < 0 )
 	{
-		mbedtls_printf( " failed\n  ! mbedtls_ssl_write returned %d\n\n", ret );
-		goto teardown;
+		mbedtls_printf(" failed\n  ! mbedtls_ssl_write returned %d\n\n", ret);
+		goto exit;
 	}
 
 	len = ret;
-	ESP_LOGI(TAG, " %d bytes written\n\n%s\n\n", len, MESSAGE );
-	goto exit;
-
-teardown:
-	dtls_teardown();
+	ESP_LOGI(TAG, " %d bytes written\n\n%s\n\n", len, msg);
+	return;
 
 exit:
-	return;
+	dtls_teardown();
 }
 
-void dtls_read()
+void dtls_read(unsigned char *buf, int buflen)
 {
 	int ret, len;
-	unsigned char buf[1024];
 	int retry_left = MAX_RETRY;
 
-	ESP_LOGI(TAG, "  < Read from server:" );
+	ESP_LOGI(TAG, "  < Read from server:");
 
-	len = sizeof( buf ) - 1;
-	memset( buf, 0, sizeof( buf ) );
+	memset(buf, 0, buflen);
 
-	do ret = mbedtls_ssl_read( &ssl, buf, len );
+	do ret = mbedtls_ssl_read( &ssl, buf, buflen);
 	while( ret == MBEDTLS_ERR_SSL_WANT_READ ||
 			ret == MBEDTLS_ERR_SSL_WANT_WRITE );
 
@@ -63,35 +54,36 @@ void dtls_read()
 		switch( ret )
 		{
 			case MBEDTLS_ERR_SSL_TIMEOUT:
-				mbedtls_printf( " timeout\n\n" );
+				mbedtls_printf(" timeout\n\n");
 				if( retry_left-- > 0 ) {
 					//goto send_request;
 				}
 				goto exit;
 
 			case MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY:
-				mbedtls_printf( " connection was closed gracefully\n" );
+				mbedtls_printf(" connection was closed gracefully\n");
 				ret = 0;
 				goto close_notify;
 
 			default:
-				mbedtls_printf( " mbedtls_ssl_read returned -0x%x\n\n", -ret );
+				mbedtls_printf(" mbedtls_ssl_read returned -0x%x\n\n", -ret);
 				goto exit;
 		}
 	}
 
 	len = ret;
-	ESP_LOGI(TAG, " %d bytes read\n\n%s\n\n", len, buf );
+	ESP_LOGI(TAG, " %d bytes read\n\n%s\n\n", len, buf);
+	return;
 
 close_notify:
-	ESP_LOGI(TAG, "  . Closing the connection..." );
+	ESP_LOGI(TAG, "  . Closing the connection...");
 
 	/* No error checking, the connection might be closed already */
 	do ret = mbedtls_ssl_close_notify( &ssl );
 	while( ret == MBEDTLS_ERR_SSL_WANT_WRITE );
 	ret = 0;
 
-	ESP_LOGI(TAG, " done\n" );
+	ESP_LOGI(TAG, " done\n");
 
 	/*
 	 * 9. Final clean-ups and exit
@@ -101,14 +93,30 @@ exit:
 
 }
 
+void dtls_close()
+{
+	int ret;
+	/*
+	 * 8. Done, cleanly close the connection
+	 */
+	ESP_LOGI(TAG, "  . Closing the connection..." ;
+
+	/* No error checking, the connection might be closed already */
+	do ret = mbedtls_ssl_close_notify(&ssl);
+	while(ret == MBEDTLS_ERR_SSL_WANT_WRITE);
+	ret = 0;
+
+	ESP_LOGI(TAG, " done\n");
+}
+
 void dtls_teardown()
 {
-	mbedtls_net_free( &server_fd );
-	mbedtls_x509_crt_free( &cacert );
-	mbedtls_ssl_free( &ssl );
-	mbedtls_ssl_config_free( &conf );
-	mbedtls_ctr_drbg_free( &ctr_drbg );
-	mbedtls_entropy_free( &entropy );
+	mbedtls_net_free(&server_fd);
+	mbedtls_x509_crt_free(&cacert);
+	mbedtls_ssl_free(&ssl);
+	mbedtls_ssl_config_free(&conf);
+	mbedtls_ctr_drbg_free(&ctr_drbg);
+	mbedtls_entropy_free(&entropy);
 }
 
 void dtls_setup()
@@ -125,51 +133,47 @@ void dtls_setup()
 	/*
 	 * 0. Initialize the RNG and the session data
 	 */
-	mbedtls_net_init( &server_fd );
-	mbedtls_ssl_init( &ssl );
-	mbedtls_ssl_config_init( &conf );
-	mbedtls_x509_crt_init( &cacert );
-	mbedtls_ctr_drbg_init( &ctr_drbg );
+	mbedtls_net_init(&server_fd);
+	mbedtls_ssl_init(&ssl);
+	mbedtls_ssl_config_init(&conf);
+	mbedtls_x509_crt_init(&cacert);
+	mbedtls_ctr_drbg_init(&ctr_drbg);
 
-	ESP_LOGI(TAG, "\n  . Seeding the random number generator..." );
+	ESP_LOGI(TAG, "\n  . Seeding the random number generator...");
 
 
-	mbedtls_entropy_init( &entropy );
+	mbedtls_entropy_init(&entropy);
 	if( ( ret = mbedtls_ctr_drbg_seed( &ctr_drbg, mbedtls_entropy_func, &entropy,
 					(const unsigned char *) pers,
 					strlen( pers ) ) ) != 0 )
 	{
-		ESP_LOGE(TAG, " failed\n  ! mbedtls_ctr_drbg_seed returned %d\n", ret );
+		ESP_LOGE(TAG, " failed\n  ! mbedtls_ctr_drbg_seed returned %d\n", ret);
 		goto exit;
 	}
 
-	ESP_LOGI(TAG, " ok\n" );
+	ESP_LOGI(TAG, " ok\n");
 
 	/*
 	 * 0. Load certificates
 	 */
-	ESP_LOGI(TAG, "  . Loading the CA root certificate ..." );
+	ESP_LOGI(TAG, "  . Loading the CA root certificate ...");
 
-
-	ret = mbedtls_x509_crt_parse( &cacert, (const unsigned char *) mbedtls_test_cas_pem,
-			mbedtls_test_cas_pem_len );
-	if( ret < 0 )
-	{
-		ESP_LOGE(TAG, " failed\n  !  mbedtls_x509_crt_parse returned -0x%x\n\n", -ret );
+	ret = mbedtls_x509_crt_parse(&cacert, (const unsigned char *) mbedtls_test_cas_pem,
+			mbedtls_test_cas_pem_len);
+	if( ret < 0 ) {
+		ESP_LOGE(TAG, " failed\n  !  mbedtls_x509_crt_parse returned -0x%x\n\n", -ret);
 		goto exit;
 	}
 
-	ESP_LOGI(TAG, " ok (%d skipped)\n", ret );
+	ESP_LOGI(TAG, " ok (%d skipped)\n", ret);
 
 	/*
 	 * 1. Start the connection
 	 */
-	ESP_LOGI(TAG, "  . Connecting to udp/%s/%s...", SERVER_NAME, SERVER_PORT );
+	ESP_LOGI(TAG, "  . Connecting to udp/%s/%s...", SERVER_NAME, SERVER_PORT);
 
 
-	if( ( ret = mbedtls_net_connect( &server_fd, SERVER_NAME,
-					SERVER_PORT, MBEDTLS_NET_PROTO_UDP ) ) != 0 )
-	{
+	if((ret = mbedtls_net_connect(&server_fd, SERVER_NAME, SERVER_PORT, MBEDTLS_NET_PROTO_UDP)) != 0) {
 		ESP_LOGE(TAG, " failed\n  ! mbedtls_net_connect returned %d\n\n", ret );
 		goto exit;
 	}
@@ -182,11 +186,7 @@ void dtls_setup()
 	ESP_LOGI(TAG, "  . Setting up the DTLS structure..." );
 
 
-	if( ( ret = mbedtls_ssl_config_defaults( &conf,
-					MBEDTLS_SSL_IS_CLIENT,
-					MBEDTLS_SSL_TRANSPORT_DATAGRAM,
-					MBEDTLS_SSL_PRESET_DEFAULT ) ) != 0 )
-	{
+	if( (ret = mbedtls_ssl_config_defaults(&conf, MBEDTLS_SSL_IS_CLIENT, MBEDTLS_SSL_TRANSPORT_DATAGRAM, MBEDTLS_SSL_PRESET_DEFAULT)) != 0) {
 		ESP_LOGE(TAG, " failed\n  ! mbedtls_ssl_config_defaults returned %d\n\n", ret );
 		goto exit;
 	}
@@ -258,30 +258,14 @@ void dtls_setup()
 		ESP_LOGI(TAG, " ok\n" );
 
 
-	/*
-	 * 8. Done, cleanly close the connection
-	 */
-	ESP_LOGI(TAG, "  . Closing the connection..." );
-
-	/* No error checking, the connection might be closed already */
-	do ret = mbedtls_ssl_close_notify( &ssl );
-	while( ret == MBEDTLS_ERR_SSL_WANT_WRITE );
-	ret = 0;
-
-	ESP_LOGI(TAG, " done\n" );
+	return;
 
 	/*
 	 * 9. Final clean-ups and exit
 	 */
 exit:
 
-	mbedtls_net_free( &server_fd );
-
-	mbedtls_x509_crt_free( &cacert );
-	mbedtls_ssl_free( &ssl );
-	mbedtls_ssl_config_free( &conf );
-	mbedtls_ctr_drbg_free( &ctr_drbg );
-	mbedtls_entropy_free( &entropy );
+	dtls_teardown();
 }
 
 

@@ -38,9 +38,16 @@ extern const uint8_t server_root_cert_pem_end[]   asm("_binary_server_root_cert_
 static void https_get_task(void *pvParameters)
 {
 	char *msg = "This is a test 1 2 1 2";
+	unsigned char buf[1024];
+
 	dtls_setup();
 	dtls_write(msg);
-	//dtls_read();
+	dtls_read(buf, sizeof(buf));
+
+	dtls_close();
+	dtls_teardown();
+
+	ESP_LOGI(TAG, "Received from server: %s", buf);
 
 	while (1);
 }

@@ -39,6 +39,7 @@ extern const int CONNECTED_BIT;
 extern const char *TAG;
 
 void dtls_setup();
+void dtls_close();
 void dtls_teardown();
 void dtls_write(char *msg);
 void dtls_read();
