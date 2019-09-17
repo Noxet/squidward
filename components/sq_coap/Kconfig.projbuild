@@ -1,0 +1,15 @@
+menu "Squidward CoAP Configuration"
+
+	config COAP_PSK_KEY
+		string "CoAP Pre-shared Key"
+		default "password"
+		help
+			Set the shared (PSK) key when authenticate via (D)TLS.
+	
+	config COAP_PSK_IDENTITY
+		string "CoAP PSK Identity"
+		default "squidward"
+		help
+			Set the identity of the device when using PSK for authentication.
+
+endmenu
