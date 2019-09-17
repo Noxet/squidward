@@ -10,34 +10,13 @@
 
 #include "nvs_flash.h"
 
-
 #include "squidward/sq_wifi.h"
 #include "squidward/sq_coap.h"
 
 const int CONNECTED_BIT = BIT0;
 EventGroupHandle_t wifi_event_group;
 
-#define COAP_DEFAULT_TIME_SEC 5
-
-//#define COAP_PSK_KEY "password"
-//#define COAP_PSK_IDENTITY "squidward"
-
-/* The examples use uri Logging Level that
-   you can set via 'make menuconfig'.
-
-   If you'd rather not, just change the below entry to a value
-   that is between 0 and 7 with
-   the config you want - ie #define EXAMPLE_COAP_LOG_DEFAULT_LEVEL 7
-*/
-#define EXAMPLE_COAP_LOG_DEFAULT_LEVEL 4
-
-#define COAP_DEFAULT_DEMO_URI "coaps://192.168.12.1"
-
-const char *TAG = "coaps_test";
-
-static int resp_wait = 1;
-static coap_optlist_t *optlist = NULL;
-static int wait_ms;
+const char *TAG = "coaps_fota";
 
 #ifdef CONFIG_COAP_MBEDTLS_PKI
 /* CA cert, taken from coap_ca.pem
@@ -58,7 +37,7 @@ extern uint8_t client_key_start[] asm("_binary_coap_client_key_start");
 extern uint8_t client_key_end[]   asm("_binary_coap_client_key_end");
 #endif /* CONFIG_COAP_MBEDTLS_PKI */
 
-static void message_handler(coap_context_t *ctx, coap_session_t *session,
+void coap_message_handler(coap_context_t *ctx, coap_session_t *session,
                             coap_pdu_t *sent, coap_pdu_t *received,
                             const coap_tid_t id)
 {
@@ -123,7 +102,7 @@ static void message_handler(coap_context_t *ctx, coap_session_t *session,
 
                 if (tid != COAP_INVALID_TID) {
                     resp_wait = 1;
-                    wait_ms = COAP_DEFAULT_TIME_SEC * 1000;
+                    wait_ms = SQ_COAP_TIME_SEC * 1000;
                     return;
                 }
             }
