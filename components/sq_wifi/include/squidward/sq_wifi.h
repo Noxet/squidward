@@ -13,11 +13,8 @@
 #include "nvs_flash.h"
 
 /* TODO: Fix so that Kconfig works */
-//#define WIFI_SSID CONFIG_WIFI_SSID
-//#define WIFI_PASS CONFIG_WIFI_PASSWORD
-
-#define WIFI_SSID "test"
-#define WIFI_PASS ""
+#define SQ_WIFI_SSID CONFIG_SQ_WIFI_SSID
+#define SQ_WIFI_PASS CONFIG_SQ_WIFI_PASSWORD
 
 extern EventGroupHandle_t wifi_event_group;
 extern const int CONNECTED_BIT;

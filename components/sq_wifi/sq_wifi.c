@@ -32,8 +32,8 @@ void wifi_init(void)
     ESP_ERROR_CHECK( esp_wifi_set_storage(WIFI_STORAGE_RAM) );
     wifi_config_t wifi_config = {
         .sta = {
-            .ssid = WIFI_SSID,
-            .password = WIFI_PASS,
+            .ssid = SQ_WIFI_SSID,
+            .password = SQ_WIFI_PASS,
         },
     };
 
