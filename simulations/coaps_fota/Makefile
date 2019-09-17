@@ -5,5 +5,8 @@
 
 PROJECT_NAME := coaps_fota
 
+EXTRA_COMPONENT_DIRS = $(SQUIDWARD_PATH)/components/sq_wifi
+EXTRA_COMPONENT_DIRS += $(SQUIDWARD_PATH)/components/sq_coap
+
 include $(IDF_PATH)/make/project.mk
 
