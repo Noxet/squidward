@@ -23,10 +23,10 @@ void coap_init(void *p)
     struct hostent *hp;
     coap_address_t    dst_addr;
     static coap_uri_t uri;
-    const char       *server_uri = COAP_DEFAULT_DEMO_URI;
+    const char       *server_uri = SQ_COAP_URI;
     char *phostname = NULL;
 
-    coap_set_log_level(EXAMPLE_COAP_LOG_DEFAULT_LEVEL);
+    coap_set_log_level(SQ_COAP_LOG_LEVEL);
 
     while (1) {
 #define BUFSIZE 40
@@ -38,9 +38,11 @@ void coap_init(void *p)
         coap_session_t *session = NULL;
         coap_pdu_t *request = NULL;
 
+        /* TODO: remove
         ESP_LOGI(TAG, "Connecting to WiFi...");
 	    xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT, false, true, portMAX_DELAY);
 	    ESP_LOGI(TAG, "Connected to AP");
+        */
 
         optlist = NULL;
         if (coap_split_uri((const uint8_t *)server_uri, strlen(server_uri), &uri) == -1) {
@@ -148,9 +150,9 @@ void coap_init(void *p)
 #ifdef CONFIG_COAP_MBEDTLS_PSK
             session = coap_new_client_session_psk(ctx, NULL, &dst_addr,
                                                   uri.scheme == COAP_URI_SCHEME_COAPS ? COAP_PROTO_DTLS : COAP_PROTO_TLS,
-                                                  COAP_PSK_IDENTITY,
-                                                  (const uint8_t *)COAP_PSK_KEY,
-                                                  sizeof(COAP_PSK_KEY) - 1);
+                                                  SQ_COAP_PSK_IDENTITY,
+                                                  (const uint8_t *) SQ_COAP_PSK_KEY,
+                                                  sizeof(SQ_COAP_PSK_KEY) - 1);
 #endif /* CONFIG_COAP_MBEDTLS_PSK */
 
 #ifdef CONFIG_COAP_MBEDTLS_PKI
@@ -217,7 +219,7 @@ void coap_init(void *p)
             goto clean_up;
         }
 
-        coap_register_response_handler(ctx, message_handler);
+        coap_register_response_handler(ctx, coap_message_handler);
 
         request = coap_new_pdu(session);
         if (!request) {
@@ -232,7 +234,7 @@ void coap_init(void *p)
         resp_wait = 1;
         coap_send(session, request);
 
-        wait_ms = COAP_DEFAULT_TIME_SEC * 1000;
+        wait_ms = SQ_COAP_TIME_SEC * 1000;
 
         while (resp_wait) {
             int result = coap_run_once(ctx, wait_ms > 1000 ? 1000 : wait_ms);

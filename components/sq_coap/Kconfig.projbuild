@@ -1,12 +1,30 @@
 menu "Squidward CoAP Configuration"
 
-	config COAP_PSK_KEY
+	config SQ_COAP_URI
+		string "Server URI to connect to"
+		default "coaps://192.168.12.1"
+		help
+			Set the server name or IP to send/receive CoAP messages to/from.
+
+	config SQ_COAP_LOG_LEVEL
+		int "CoAP log level"
+		default 4
+		help
+			Set the log level of CoAP, from 0-7.
+	
+	config SQ_COAP_TIME_SEC
+		int "CoAP timeout value in seconds"
+		default 5
+		help
+			Set the number of seconds before a CoAP timeout is triggered.
+
+	config SQ_COAP_PSK_KEY
 		string "CoAP Pre-shared Key"
 		default "password"
 		help
 			Set the shared (PSK) key when authenticate via (D)TLS.
 	
-	config COAP_PSK_IDENTITY
+	config SQ_COAP_PSK_IDENTITY
 		string "CoAP PSK Identity"
 		default "squidward"
 		help
