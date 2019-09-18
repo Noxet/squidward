@@ -44,7 +44,7 @@ static void coap_message_handler(coap_context_t *ctx, coap_session_t *session,
 	coap_optlist_t *option;
 	coap_tid_t tid;
 
-#ifdef CONFIG_SQ_COAP_DBG
+#ifdef CONFIG_SQ_MAIN
 	ESP_LOGI(TAG, "[%s] - Got response", __FUNCTION__);
 #endif
 
@@ -254,14 +254,14 @@ void sq_main(void *p)
 	while (1) {
 		res = sq_coap_init(&ctx, &session);
 		if (res == SQ_COAP_OK) {
-#ifdef CONFIG_SQ_COAP_DBG
+#ifdef CONFIG_SQ_MAIN
 			ESP_LOGI(TAG, "[%s] - CoAP init OK", __FUNCTION__);
 			ESP_LOGI(TAG, "[%s] - ctx: %p, session: %p", __FUNCTION__, ctx, session);
 #endif
 			break;
 		} else if (res == SQ_COAP_ERR_DNS) {
 			/* Wait a while, the retry */
-#ifdef CONFIG_SQ_COAP_DBG
+#ifdef CONFIG_SQ_MAIN
 			ESP_LOGI(TAG, "[%s] - DNS lookup error, wait and try again...", __FUNCTION__);
 #endif
 			vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -273,7 +273,7 @@ void sq_main(void *p)
 	}
 
 	coap_register_response_handler(ctx, coap_message_handler);
-#ifdef CONFIG_SQ_COAP_DBG
+#ifdef CONFIG_SQ_MAIN
 	ESP_LOGI(TAG, "[%s] - Registered response handler", __FUNCTION__);
 #endif
 
@@ -291,7 +291,7 @@ void sq_main(void *p)
 	resp_wait = 1;
 	coap_send(session, request);
 
-#ifdef CONFIG_SQ_COAP_DBG
+#ifdef CONFIG_SQ_MAIN
 	ESP_LOGI(TAG, "[%s] - CoAP message sent, awaiting response", __FUNCTION__);
 #endif
 
@@ -309,7 +309,7 @@ void sq_main(void *p)
 		}
 	}
 
-#ifdef CONFIG_SQ_COAP_DBG
+#ifdef CONFIG_SQ_MAIN
 	ESP_LOGI(TAG, "[%s] - Response handled, exiting", __FUNCTION__);
 #endif
 

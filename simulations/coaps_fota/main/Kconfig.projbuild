@@ -1,0 +1,9 @@
+menu "Squidward CoAPs FOTA Configuration"
+
+	config SQ_MAIN
+		boolean "Print debug logs"
+		default n
+		help
+			Turn on or off logs from the main code.
+
+endmenu
