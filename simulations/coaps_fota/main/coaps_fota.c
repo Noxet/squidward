@@ -18,25 +18,6 @@ EventGroupHandle_t wifi_event_group;
 
 const char *TAG = "coaps_fota";
 
-#ifdef CONFIG_COAP_MBEDTLS_PKI
-/* CA cert, taken from coap_ca.pem
-   Client cert, taken from coap_client.crt
-   Client key, taken from coap_client.key
-
-   The PEM, CRT and KEY file are examples taken from the wpa2 enterprise
-   example.
-
-   To embed it in the app binary, the PEM, CRT and KEY file is named
-   in the component.mk COMPONENT_EMBED_TXTFILES variable.
- */
-extern uint8_t ca_pem_start[] asm("_binary_coap_ca_pem_start");
-extern uint8_t ca_pem_end[]   asm("_binary_coap_ca_pem_end");
-extern uint8_t client_crt_start[] asm("_binary_coap_client_crt_start");
-extern uint8_t client_crt_end[]   asm("_binary_coap_client_crt_end");
-extern uint8_t client_key_start[] asm("_binary_coap_client_key_start");
-extern uint8_t client_key_end[]   asm("_binary_coap_client_key_end");
-#endif /* CONFIG_COAP_MBEDTLS_PKI */
-
 void coap_message_handler(coap_context_t *ctx, coap_session_t *session,
                             coap_pdu_t *sent, coap_pdu_t *received,
                             const coap_tid_t id)
