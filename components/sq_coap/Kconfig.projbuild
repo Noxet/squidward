@@ -1,5 +1,11 @@
 menu "Squidward CoAP Configuration"
 
+	config SQ_COAP_DBG
+		boolean "Print debug logs"
+		default y
+		help
+			Turn on or off debug logs from the coap functions.
+
 	config SQ_COAP_URI
 		string "Server URI to connect to"
 		default "coaps://192.168.12.1"

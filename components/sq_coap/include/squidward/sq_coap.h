@@ -44,12 +44,14 @@ extern uint8_t client_key_start[]	asm("_binary_coap_client_key_start");
 extern uint8_t client_key_end[]		asm("_binary_coap_client_key_end");
 #endif /* CONFIG_COAP_MBEDTLS_PKI */
 
-extern const char *TAG;
-static int resp_wait = 1;
-static coap_optlist_t *optlist = NULL;
-static int wait_ms;
+#define SQ_COAP_OK			(0)
+#define SQ_COAP_ERR_DNS		(1)
+#define SQ_COAP_ERR_FAIL	(2)
 
-extern void coap_message_handler(coap_context_t *, coap_session_t *, coap_pdu_t *, coap_pdu_t *, const coap_tid_t);
-void coap_init(void *);
+extern const char *TAG;
+static coap_optlist_t *optlist = NULL;
+
+int sq_coap_init(coap_context_t **, coap_session_t **);
+void sq_coap_cleanup(coap_context_t *, coap_session_t *);
 
 #endif
