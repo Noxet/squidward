@@ -32,97 +32,97 @@ static int wait_ms;
 const char *TAG = "coaps_fota";
 
 static void coap_message_handler(coap_context_t *ctx, coap_session_t *session,
-                            coap_pdu_t *sent, coap_pdu_t *received,
-                            const coap_tid_t id)
+							coap_pdu_t *sent, coap_pdu_t *received,
+							const coap_tid_t id)
 {
-    unsigned char *data = NULL;
-    size_t data_len;
-    coap_pdu_t *pdu = NULL;
-    coap_opt_t *block_opt;
-    coap_opt_iterator_t opt_iter;
-    unsigned char buf[4];
-    coap_optlist_t *option;
-    coap_tid_t tid;
+	unsigned char *data = NULL;
+	size_t data_len;
+	coap_pdu_t *pdu = NULL;
+	coap_opt_t *block_opt;
+	coap_opt_iterator_t opt_iter;
+	unsigned char buf[4];
+	coap_optlist_t *option;
+	coap_tid_t tid;
 
 #ifdef CONFIG_SQ_COAP_DBG
-    ESP_LOGI(TAG, "[%s] - Got response", __FUNCTION__);
+	ESP_LOGI(TAG, "[%s] - Got response", __FUNCTION__);
 #endif
 
-    if (COAP_RESPONSE_CLASS(received->code) == 2) {
-        /* Need to see if blocked response */
-        block_opt = coap_check_option(received, COAP_OPTION_BLOCK2, &opt_iter);
-        if (block_opt) {
-            uint16_t blktype = opt_iter.type;
+	if (COAP_RESPONSE_CLASS(received->code) == 2) {
+		/* Need to see if blocked response */
+		block_opt = coap_check_option(received, COAP_OPTION_BLOCK2, &opt_iter);
+		if (block_opt) {
+			uint16_t blktype = opt_iter.type;
 
-            if (coap_opt_block_num(block_opt) == 0) {
-                printf("Received:\n");
-            }
-            if (coap_get_data(received, &data_len, &data)) {
-                printf("%.*s", (int)data_len, data);
-            }
-            if (COAP_OPT_BLOCK_MORE(block_opt)) {
-                /* more bit is set */
+			if (coap_opt_block_num(block_opt) == 0) {
+				printf("Received:\n");
+			}
+			if (coap_get_data(received, &data_len, &data)) {
+				printf("%.*s", (int)data_len, data);
+			}
+			if (COAP_OPT_BLOCK_MORE(block_opt)) {
+				/* more bit is set */
 
-                /* create pdu with request for next block */
-                pdu = coap_new_pdu(session);
-                if (!pdu) {
-                    ESP_LOGE(TAG, "coap_new_pdu() failed");
-                    goto clean_up;
-                }
-                pdu->type = COAP_MESSAGE_CON;
-                pdu->tid = coap_new_message_id(session);
-                pdu->code = COAP_REQUEST_GET;
+				/* create pdu with request for next block */
+				pdu = coap_new_pdu(session);
+				if (!pdu) {
+					ESP_LOGE(TAG, "coap_new_pdu() failed");
+					goto clean_up;
+				}
+				pdu->type = COAP_MESSAGE_CON;
+				pdu->tid = coap_new_message_id(session);
+				pdu->code = COAP_REQUEST_GET;
 
-                /* add URI components from optlist */
-                for (option = optlist; option; option = option->next ) {
-                    switch (option->number) {
-                    case COAP_OPTION_URI_HOST :
-                    case COAP_OPTION_URI_PORT :
-                    case COAP_OPTION_URI_PATH :
-                    case COAP_OPTION_URI_QUERY :
-                        coap_add_option(pdu, option->number, option->length,
-                                        option->data);
-                        break;
-                    default:
-                        ;     /* skip other options */
-                    }
-                }
+				/* add URI components from optlist */
+				for (option = optlist; option; option = option->next ) {
+					switch (option->number) {
+					case COAP_OPTION_URI_HOST :
+					case COAP_OPTION_URI_PORT :
+					case COAP_OPTION_URI_PATH :
+					case COAP_OPTION_URI_QUERY :
+						coap_add_option(pdu, option->number, option->length,
+										option->data);
+						break;
+					default:
+						;     /* skip other options */
+					}
+				}
 
-                /* finally add updated block option from response, clear M bit */
-                /* blocknr = (blocknr & 0xfffffff7) + 0x10; */
-                coap_add_option(pdu,
-                                blktype,
-                                coap_encode_var_safe(buf, sizeof(buf),
-                                                     ((coap_opt_block_num(block_opt) + 1) << 4) |
-                                                     COAP_OPT_BLOCK_SZX(block_opt)), buf);
+				/* finally add updated block option from response, clear M bit */
+				/* blocknr = (blocknr & 0xfffffff7) + 0x10; */
+				coap_add_option(pdu,
+								blktype,
+								coap_encode_var_safe(buf, sizeof(buf),
+													 ((coap_opt_block_num(block_opt) + 1) << 4) |
+													 COAP_OPT_BLOCK_SZX(block_opt)), buf);
 
-                tid = coap_send(session, pdu);
+				tid = coap_send(session, pdu);
 
-                if (tid != COAP_INVALID_TID) {
-                    resp_wait = 1;
-                    wait_ms = SQ_COAP_TIME_SEC * 1000;
-                    return;
-                }
-            }
-            printf("\n");
-        } else {
-            if (coap_get_data(received, &data_len, &data)) {
-                printf("Received: %.*s\n", (int)data_len, data);
-            }
-        }
-    }
+				if (tid != COAP_INVALID_TID) {
+					resp_wait = 1;
+					wait_ms = SQ_COAP_TIME_SEC * 1000;
+					return;
+				}
+			}
+			printf("\n");
+		} else {
+			if (coap_get_data(received, &data_len, &data)) {
+				printf("Received: %.*s\n", (int)data_len, data);
+			}
+		}
+	}
 clean_up:
-    resp_wait = 0;
+	resp_wait = 0;
 }
 
 void print_sha256 (const uint8_t *image_hash, const char *label)
 {
-    char hash_print[HASH_LEN * 2 + 1];
-    hash_print[HASH_LEN * 2] = 0;
-    for (int i = 0; i < HASH_LEN; ++i) {
-        sprintf(&hash_print[i * 2], "%02x", image_hash[i]);
-    }
-    ESP_LOGI(TAG, "%s: %s", label, hash_print);
+	char hash_print[HASH_LEN * 2 + 1];
+	hash_print[HASH_LEN * 2] = 0;
+	for (int i = 0; i < HASH_LEN; ++i) {
+		sprintf(&hash_print[i * 2], "%02x", image_hash[i]);
+	}
+	ESP_LOGI(TAG, "%s: %s", label, hash_print);
 }
 
 
@@ -245,116 +245,116 @@ void print_sha256 (const uint8_t *image_hash, const char *label)
 
 void sq_main(void *p)
 {
-    coap_context_t  *ctx = NULL;
-    coap_session_t  *session = NULL;
-    coap_pdu_t      *request = NULL;
-    
-    int res;
+	coap_context_t  *ctx = NULL;
+	coap_session_t  *session = NULL;
+	coap_pdu_t      *request = NULL;
+	
+	int res;
 
-    while (1) {
-        res = sq_coap_init(&ctx, &session);
-        if (res == SQ_COAP_OK) {
+	while (1) {
+		res = sq_coap_init(&ctx, &session);
+		if (res == SQ_COAP_OK) {
 #ifdef CONFIG_SQ_COAP_DBG
-            ESP_LOGI(TAG, "[%s] - CoAP init OK", __FUNCTION__);
-            ESP_LOGI(TAG, "[%s] - ctx: %p, session: %p", __FUNCTION__, ctx, session);
+			ESP_LOGI(TAG, "[%s] - CoAP init OK", __FUNCTION__);
+			ESP_LOGI(TAG, "[%s] - ctx: %p, session: %p", __FUNCTION__, ctx, session);
 #endif
-            break;
-        } else if (res == SQ_COAP_ERR_DNS) {
-            /* Wait a while, the retry */
+			break;
+		} else if (res == SQ_COAP_ERR_DNS) {
+			/* Wait a while, the retry */
 #ifdef CONFIG_SQ_COAP_DBG
-            ESP_LOGI(TAG, "[%s] - DNS lookup error, wait and try again...", __FUNCTION__);
+			ESP_LOGI(TAG, "[%s] - DNS lookup error, wait and try again...", __FUNCTION__);
 #endif
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
-            continue;
-        } else if (res == SQ_COAP_ERR_FAIL) {
-            ESP_LOGE(TAG, "Caught unrecoverable error when initializing CoAP, exiting...");
-            goto exit;
-        }
-    }
+			vTaskDelay(1000 / portTICK_PERIOD_MS);
+			continue;
+		} else if (res == SQ_COAP_ERR_FAIL) {
+			ESP_LOGE(TAG, "Caught unrecoverable error when initializing CoAP, exiting...");
+			goto exit;
+		}
+	}
 
-    coap_register_response_handler(ctx, coap_message_handler);
+	coap_register_response_handler(ctx, coap_message_handler);
 #ifdef CONFIG_SQ_COAP_DBG
-    ESP_LOGI(TAG, "[%s] - Registered response handler", __FUNCTION__);
-#endif
-
-    request = coap_new_pdu(session);
-    if (!request) {
-        ESP_LOGE(TAG, "coap_new_pdu() failed");
-        sq_coap_cleanup(ctx, session);
-        goto exit;
-    }
-    request->type = COAP_MESSAGE_CON;
-    request->tid = coap_new_message_id(session);
-    request->code = COAP_REQUEST_GET;
-    coap_add_optlist_pdu(request, &optlist);
-
-    resp_wait = 1;
-    coap_send(session, request);
-
-#ifdef CONFIG_SQ_COAP_DBG
-    ESP_LOGI(TAG, "[%s] - CoAP message sent, awaiting response", __FUNCTION__);
+	ESP_LOGI(TAG, "[%s] - Registered response handler", __FUNCTION__);
 #endif
 
-    wait_ms = SQ_COAP_TIME_SEC * 1000;
+	request = coap_new_pdu(session);
+	if (!request) {
+		ESP_LOGE(TAG, "coap_new_pdu() failed");
+		sq_coap_cleanup(ctx, session);
+		goto exit;
+	}
+	request->type = COAP_MESSAGE_CON;
+	request->tid = coap_new_message_id(session);
+	request->code = COAP_REQUEST_GET;
+	coap_add_optlist_pdu(request, &optlist);
 
-    while (resp_wait) {
-        int result = coap_run_once(ctx, wait_ms > 1000 ? 1000 : wait_ms);
-        if (result >= 0) {
-            if (result >= wait_ms) {
-                ESP_LOGE(TAG, "select timeout");
-                break;
-            } else {
-                wait_ms -= result;
-            }
-        }
-    }
+	resp_wait = 1;
+	coap_send(session, request);
 
 #ifdef CONFIG_SQ_COAP_DBG
-    ESP_LOGI(TAG, "[%s] - Response handled, exiting", __FUNCTION__);
+	ESP_LOGI(TAG, "[%s] - CoAP message sent, awaiting response", __FUNCTION__);
+#endif
+
+	wait_ms = SQ_COAP_TIME_SEC * 1000;
+
+	while (resp_wait) {
+		int result = coap_run_once(ctx, wait_ms > 1000 ? 1000 : wait_ms);
+		if (result >= 0) {
+			if (result >= wait_ms) {
+				ESP_LOGE(TAG, "select timeout");
+				break;
+			} else {
+				wait_ms -= result;
+			}
+		}
+	}
+
+#ifdef CONFIG_SQ_COAP_DBG
+	ESP_LOGI(TAG, "[%s] - Response handled, exiting", __FUNCTION__);
 #endif
 
 exit:
-    vTaskDelete(NULL);
+	vTaskDelete(NULL);
 }
 
 void app_main(void)
 {
-    uint8_t sha_256[HASH_LEN] = { 0 };
-    esp_partition_t partition;
+	uint8_t sha_256[HASH_LEN] = { 0 };
+	esp_partition_t partition;
 
-    // get sha256 digest for the partition table
-    partition.address   = ESP_PARTITION_TABLE_OFFSET;
-    partition.size      = ESP_PARTITION_TABLE_MAX_LEN;
-    partition.type      = ESP_PARTITION_TYPE_DATA;
-    esp_partition_get_sha256(&partition, sha_256);
-    print_sha256(sha_256, "SHA-256 for the partition table: ");
+	// get sha256 digest for the partition table
+	partition.address   = ESP_PARTITION_TABLE_OFFSET;
+	partition.size      = ESP_PARTITION_TABLE_MAX_LEN;
+	partition.type      = ESP_PARTITION_TYPE_DATA;
+	esp_partition_get_sha256(&partition, sha_256);
+	print_sha256(sha_256, "SHA-256 for the partition table: ");
 
-    // get sha256 digest for bootloader
-    partition.address   = ESP_BOOTLOADER_OFFSET;
-    partition.size      = ESP_PARTITION_TABLE_OFFSET;
-    partition.type      = ESP_PARTITION_TYPE_APP;
-    esp_partition_get_sha256(&partition, sha_256);
-    print_sha256(sha_256, "SHA-256 for bootloader: ");
+	// get sha256 digest for bootloader
+	partition.address   = ESP_BOOTLOADER_OFFSET;
+	partition.size      = ESP_PARTITION_TABLE_OFFSET;
+	partition.type      = ESP_PARTITION_TYPE_APP;
+	esp_partition_get_sha256(&partition, sha_256);
+	print_sha256(sha_256, "SHA-256 for bootloader: ");
 
-    // get sha256 digest for running partition
-    esp_partition_get_sha256(esp_ota_get_running_partition(), sha_256);
-    print_sha256(sha_256, "SHA-256 for current firmware: ");
+	// get sha256 digest for running partition
+	esp_partition_get_sha256(esp_ota_get_running_partition(), sha_256);
+	print_sha256(sha_256, "SHA-256 for current firmware: ");
 
-    // Initialize NVS.
-    esp_err_t err = nvs_flash_init();
-    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        // OTA app partition table has a smaller NVS partition size than the non-OTA
-        // partition table. This size mismatch may cause NVS initialization to fail.
-        // If this happens, we erase NVS partition and initialize NVS again.
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        err = nvs_flash_init();
-    }
-    ESP_ERROR_CHECK( err );
+	// Initialize NVS.
+	esp_err_t err = nvs_flash_init();
+	if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+		// OTA app partition table has a smaller NVS partition size than the non-OTA
+		// partition table. This size mismatch may cause NVS initialization to fail.
+		// If this happens, we erase NVS partition and initialize NVS again.
+		ESP_ERROR_CHECK(nvs_flash_erase());
+		err = nvs_flash_init();
+	}
+	ESP_ERROR_CHECK( err );
 
-    tcpip_adapter_init();
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
+	tcpip_adapter_init();
+	ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-    wifi_init();
+	wifi_init();
 
-    xTaskCreate(sq_main, "coaps_fota", 8 * 1024, NULL, 5, NULL);
+	xTaskCreate(sq_main, "coaps_fota", 8 * 1024, NULL, 5, NULL);
 }
