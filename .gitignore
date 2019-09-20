@@ -1,5 +1,6 @@
 
 sdkconfig*
 build/
+buildlogs/
 
 .vscode/
