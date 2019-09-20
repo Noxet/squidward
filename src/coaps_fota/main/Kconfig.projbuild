@@ -1,6 +1,6 @@
-menu "Squidward CoAPs FOTA Configuration"
+menu "Squidward CoAPs FOTA Main Configuration"
 
-	config SQ_MAIN
+	config SQ_MAIN_DBG
 		boolean "Print debug logs"
 		default n
 		help
