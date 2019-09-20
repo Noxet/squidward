@@ -34,7 +34,7 @@ void sq_uart_init()
 	gpio_config(&io_conf);
 }
 
-void sq_uart_send(char *data, size_t len)
+void sq_uart_send(const char *data, size_t len)
 {
 #ifdef CONFIG_SQ_UART_DBG
 	ESP_LOGI(TAG, "[%s] - Sending %d bytes of data: %s", __FUNCTION__, len, data);
@@ -45,7 +45,7 @@ void sq_uart_send(char *data, size_t len)
 	 */
 	ESP_ERROR_CHECK(uart_wait_tx_done(UART_NUM_0, 100));
 	gpio_set_level(CTRL_PIN, 1);
-	int res = uart_write_bytes(UART_NUM_0, (const char *) data, len);
+	int res = uart_write_bytes(UART_NUM_0, data, len);
 	/* Again, wait until finished before turning off the output. */
 	ESP_ERROR_CHECK(uart_wait_tx_done(UART_NUM_0, 100));
 	gpio_set_level(CTRL_PIN, 0);
