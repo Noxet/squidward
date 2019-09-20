@@ -1,0 +1,22 @@
+menu "Squidward UART Configuration"
+
+	config SQ_UART_DBG
+		boolean "Print debug logs"
+		default y
+		help
+			Turn on or off debug logs from the uart functions.
+
+	config SQ_UART_CTRL_PIN
+		int "UART Control Pin"
+		default 4
+		help
+			Set the output IO pin for switching the UART output to the Otii.
+
+	config SQ_UART_BAUDRATE
+		int "UART Baudrate"
+		default 115200
+		help
+			Set the baudrate of the UART device. Use values 
+			like 9600, 19200, 38400, 115200.
+
+endmenu
