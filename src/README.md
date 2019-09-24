@@ -1,4 +1,4 @@
-# Simulations
+# Applications
 Here are applications for different simulations located.
 
 # Build
