@@ -17,3 +17,7 @@ Copy `patch/libcoap/coap_io.c` and replace `$IDF_PATH/components/coap/libcoap/sr
 Copy all files and folders in `patch` and replace the files in `$IDF_PATH/components/coap`.
 
 Copy `patch/mbedtls/esp_timing.c` to `$IDF_PATH/components/mbedtls/port/`.
+
+# Build
+Running `make builds` in the top folder will generate all configured binary files.
+To generate binaries for a specific application, run `make builds` inside an application folder in src.
