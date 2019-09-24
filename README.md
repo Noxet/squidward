@@ -2,7 +2,14 @@
 A research project at Lund University investigating IoT protocols with added security
 
 # Set up
+
+## Install ESP32 SDK
 Follow the ESP32 "Get Started" guide and install IDF version 3.3.
+
+Set the environment variable `SQUIDWARD_PATH` to point to the root folder of this repo.
+
+## Install Patches
+To support DTLS in the stable branch, some files need to be patched, as described next.
 
 In the `$IDF_PATH/components/coap/libcoap` folder, checkout a newer version of the library by running 
 
