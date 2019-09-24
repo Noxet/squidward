@@ -27,8 +27,12 @@ static int wait_ms;
 const char *TAG = "coaps";
 
 /* Annotation strings */
-const char ant_get_send[]		= "CoAP GET send\n";
-const char ant_get_send_done[]	= "CoAP GET send done\n";
+const char ant_post_send[32]			= "CoAP POST send";
+const char ant_post_send_done[]			= "CoAP POST send done\n";
+const char ant_get_block_send[]			= "CoAP GET block send\n";
+const char ant_get_block_send_done[]	= "CoAP GET block send done\n";
+
+unsigned char post_data[1024];
 
 static void coap_message_handler(coap_context_t *ctx, coap_session_t *session,
 							coap_pdu_t *sent, coap_pdu_t *received,
@@ -94,8 +98,9 @@ static void coap_message_handler(coap_context_t *ctx, coap_session_t *session,
 								coap_encode_var_safe(buf, sizeof(buf),
 													 ((coap_opt_block_num(block_opt) + 1) << 4) |
 													 COAP_OPT_BLOCK_SZX(block_opt)), buf);
-
+				sq_uart_send(ant_get_block_send, sizeof(ant_get_block_send));
 				tid = coap_send(session, pdu);
+				sq_uart_send(ant_get_block_send_done, sizeof(ant_get_block_send_done));
 
 				if (tid != COAP_INVALID_TID) {
 					resp_wait = 1;
@@ -119,6 +124,14 @@ void sq_main(void *p)
 	coap_context_t  *ctx = NULL;
 	coap_session_t  *session = NULL;
 	coap_pdu_t      *request = NULL;
+
+	/* Initialize data to be sent */
+	for (int i = 0; i < 1024; i++) {
+		post_data[i] = 'a';
+	}
+
+#define ANT_BUF_SIZE 64
+	char annotation_msg[ANT_BUF_SIZE];
 	
 	int res;
 
@@ -159,38 +172,48 @@ void sq_main(void *p)
 	ESP_LOGI(TAG, "[%s] - Registered response handler", __FUNCTION__);
 #endif
 
-	request = coap_new_pdu(session);
-	if (!request) {
-		ESP_LOGE(TAG, "coap_new_pdu() failed");
-		sq_coap_cleanup(ctx, session);
-		goto exit;
-	}
-	request->type = COAP_MESSAGE_CON;
-	request->tid = coap_new_message_id(session);
-	request->code = COAP_REQUEST_GET;
-	coap_add_optlist_pdu(request, &optlist);
+	int post_len = 1;
+	for (int i = 0; i <= 10; i++) {
+		request = coap_new_pdu(session);
+		if (!request) {
+			ESP_LOGE(TAG, "coap_new_pdu() failed");
+			sq_coap_cleanup(ctx, session);
+			goto exit;
+		}
+		request->type = COAP_MESSAGE_CON;
+		request->tid = coap_new_message_id(session);
+		request->code = COAP_REQUEST_PUT;
+		coap_add_optlist_pdu(request, &optlist);
 
-	resp_wait = 1;
-	sq_uart_send(ant_get_send, sizeof(ant_get_send));
-	coap_send(session, request);
-	sq_uart_send(ant_get_send_done, sizeof(ant_get_send_done));
+		/* Add POST data, double the size each time */
+		coap_add_data(request, post_len, post_data);
 
-#ifdef CONFIG_SQ_MAIN_DBG
-	ESP_LOGI(TAG, "[%s] - CoAP message sent, awaiting response", __FUNCTION__);
-#endif
+		resp_wait = 1;
+		snprintf(annotation_msg, ANT_BUF_SIZE, "%s %d bytes\n", ant_post_send, post_len);
+		sq_uart_send(annotation_msg, strlen(annotation_msg));
+		coap_send(session, request);
+		sq_uart_send(ant_post_send_done, sizeof(ant_post_send_done));
 
-	wait_ms = SQ_COAP_TIME_SEC * 1000;
+		post_len *= 2;
 
-	while (resp_wait) {
-		int result = coap_run_once(ctx, wait_ms > 1000 ? 1000 : wait_ms);
-		if (result >= 0) {
-			if (result >= wait_ms) {
-				ESP_LOGE(TAG, "select timeout");
-				break;
-			} else {
-				wait_ms -= result;
+	#ifdef CONFIG_SQ_MAIN_DBG
+		ESP_LOGI(TAG, "[%s] - CoAP message sent, awaiting response", __FUNCTION__);
+	#endif
+
+		wait_ms = SQ_COAP_TIME_SEC * 1000;
+
+		while (resp_wait) {
+			int result = coap_run_once(ctx, wait_ms > 1000 ? 1000 : wait_ms);
+			if (result >= 0) {
+				if (result >= wait_ms) {
+					ESP_LOGE(TAG, "select timeout");
+					break;
+				} else {
+					wait_ms -= result;
+				}
 			}
 		}
+		sleep(1);
 	}
 
 #ifdef CONFIG_SQ_MAIN_DBG
