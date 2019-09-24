@@ -11,7 +11,7 @@ EXTRA_COMPONENT_DIRS += $(SQUIDWARD_PATH)/components/sq_uart
 
 include $(IDF_PATH)/make/project.mk
 
-CONFIGS = sdk-psk-nodbg sdk-psk-dbg
+CONFIGS = sdk-none sdk-none-dbg sdk-psk sdk-psk-dbg
 
 builds:
 	mkdir -p binaries
@@ -19,7 +19,9 @@ builds:
 	for conf in $(CONFIGS) ; do \
 		cp config/$$conf sdkconfig ; \
 		$(MAKE) -j $(shell nproc) 2> buildlogs/$(PROJECT_NAME)-$$conf.log; \
-		cp build/$(PROJECT_NAME).bin binaries/$(PROJECT_NAME)-$$conf.bin ; \
+		mkdir -p binaries/$(PROJECT_NAME)-$$conf ; \
+		cp build/*.bin binaries/$(PROJECT_NAME)-$$conf/ ; \
+		cp build/bootloader/bootloader.bin binaries/$(PROJECT_NAME)-$$conf ; \
 	done
 	for conf in $(CONFIGS) ; do \
 		[ -s buildlogs/$(PROJECT_NAME)-$$conf.log ] && echo -e "\e[33mThere is output in log file $(PROJECT_NAME)-$$conf.log\e[0m" || echo -n "" ; \
