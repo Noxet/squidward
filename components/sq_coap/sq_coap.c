@@ -1,5 +1,10 @@
 
 #include "squidward/sq_coap.h"
+#include "squidward/sq_uart.h"
+
+const char ant_setup_plain[]	= "Setting up plain conn";
+const char ant_setup_psk[]	= "Setting up PSK conn";
+const char ant_setup_pki[]	= "Setting up PKI conn";
 
 #ifdef CONFIG_COAP_MBEDTLS_PKI
 
@@ -161,6 +166,7 @@ int sq_coap_init(coap_context_t **ctx, coap_session_t **session)
 #endif /* CONFIG_MBEDTLS_TLS_CLIENT */
 
 #ifdef CONFIG_COAP_MBEDTLS_PSK
+		sq_uart_send(ant_setup_psk, sizeof(ant_setup_psk));
 		*session = coap_new_client_session_psk(*ctx, NULL, &dst_addr,
 												uri.scheme == COAP_URI_SCHEME_COAPS ? COAP_PROTO_DTLS : COAP_PROTO_TLS,
 												SQ_COAP_PSK_IDENTITY,
@@ -218,11 +224,13 @@ int sq_coap_init(coap_context_t **ctx, coap_session_t **session)
 		dtls_pki.pki_key.key.pem_buf.ca_cert = ca_pem_start;
 		dtls_pki.pki_key.key.pem_buf.ca_cert_len = ca_pem_bytes;
 
+		sq_uart_send(ant_setup_pki, sizeof(ant_setup_pki));
 		*session = coap_new_client_session_pki(*ctx, NULL, &dst_addr,
 												uri.scheme == COAP_URI_SCHEME_COAPS ? COAP_PROTO_DTLS : COAP_PROTO_TLS,
 												&dtls_pki);
 #endif /* CONFIG_COAP_MBEDTLS_PKI */
 	} else {
+		sq_uart_send(ant_setup_plain, sizeof(ant_setup_plain));
 		*session = coap_new_client_session(*ctx, NULL, &dst_addr,
 											uri.scheme == COAP_URI_SCHEME_COAP_TCP ? COAP_PROTO_TCP :
 											COAP_PROTO_UDP);
