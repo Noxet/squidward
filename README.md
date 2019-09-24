@@ -21,7 +21,7 @@ In the `$IDF_PATH/components/coap/libcoap/ext/tinydtls` folder run
 
 Copy `patch/libcoap/coap_io.c` and replace `$IDF_PATH/components/coap/libcoap/src/coap_io.c`.
 
-Copy all files and folders in `patch` and replace the files in `$IDF_PATH/components/coap`.
+Copy all files and folders in `patch/coap` and replace the files in `$IDF_PATH/components/coap`.
 
 Copy `patch/mbedtls/esp_timing.c` to `$IDF_PATH/components/mbedtls/port/`.
 
