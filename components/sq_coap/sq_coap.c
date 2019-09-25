@@ -5,8 +5,9 @@
 #include <sys/param.h>
 
 const char ant_setup_plain[]	= "Setting up plain conn";
-const char ant_setup_psk[]	= "Setting up PSK conn";
-const char ant_setup_pki[]	= "Setting up PKI conn";
+const char ant_setup_psk[]		= "Setting up PSK conn";
+const char ant_setup_pki[]		= "Setting up PKI conn";
+const char ant_setup_done[]		= "Setup done";
 
 #ifdef CONFIG_COAP_MBEDTLS_PKI
 
@@ -174,6 +175,7 @@ int sq_coap_init(coap_context_t **ctx, coap_session_t **session)
 												SQ_COAP_PSK_IDENTITY,
 												(const uint8_t *) SQ_COAP_PSK_KEY,
 												sizeof(SQ_COAP_PSK_KEY) - 1);
+		sq_uart_send(ant_setup_done, sizeof(ant_setup_done));
 #endif /* CONFIG_COAP_MBEDTLS_PSK */
 
 #ifdef CONFIG_COAP_MBEDTLS_PKI
@@ -230,12 +232,14 @@ int sq_coap_init(coap_context_t **ctx, coap_session_t **session)
 		*session = coap_new_client_session_pki(*ctx, NULL, &dst_addr,
 												uri.scheme == COAP_URI_SCHEME_COAPS ? COAP_PROTO_DTLS : COAP_PROTO_TLS,
 												&dtls_pki);
+		sq_uart_send(ant_setup_done, sizeof(ant_setup_done));
 #endif /* CONFIG_COAP_MBEDTLS_PKI */
 	} else {
 		sq_uart_send(ant_setup_plain, sizeof(ant_setup_plain));
 		*session = coap_new_client_session(*ctx, NULL, &dst_addr,
 											uri.scheme == COAP_URI_SCHEME_COAP_TCP ? COAP_PROTO_TCP :
 											COAP_PROTO_UDP);
+		sq_uart_send(ant_setup_done, sizeof(ant_setup_done));
 	}
 	if (!*session) {
 		ESP_LOGE(TAG, "coap_new_client_session() failed");
