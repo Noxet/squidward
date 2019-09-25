@@ -2,6 +2,8 @@
 #include "squidward/sq_coap.h"
 #include "squidward/sq_uart.h"
 
+#include <sys/param.h>
+
 const char ant_setup_plain[]	= "Setting up plain conn";
 const char ant_setup_psk[]	= "Setting up PSK conn";
 const char ant_setup_pki[]	= "Setting up PKI conn";
