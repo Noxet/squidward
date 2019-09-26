@@ -18,6 +18,8 @@
 #include "esp_flash_partitions.h"
 #include "esp_partition.h"
 
+#include "driver/gpio.h"
+
 #include "squidward/sq_wifi.h"
 #include "squidward/sq_coap.h"
 #include "squidward/sq_uart.h"
@@ -25,8 +27,17 @@
 #define OTA_BUFSIZE 1024
 #define HASH_LEN 32 /* SHA-256 digest length */
 
+static xQueueHandle gpio_evt_queue = NULL;
+#define UPDATE_BTN	GPIO_NUM_5
+#define LED 		GPIO_NUM_18
+
+/* 0 means a non-shared interrupt level of 1, 2, or 3.
+ * see the esp_intr_alloc.h file for the esp_alloc_intrstatus function.
+ */
+#define ESP_INTR_FLAG_DEFAULT 0
+
 static esp_ota_handle_t update_handle = 0;
-static char ota_write_data[OTA_BUFSIZE + 1] = { 0 };
+//static char ota_write_data[OTA_BUFSIZE + 1] = { 0 };
 
 const int CONNECTED_BIT = BIT0;
 EventGroupHandle_t wifi_event_group;
@@ -42,6 +53,16 @@ const char ant_get_send_done[]			= "CoAP GET send done\n";
 const char ant_get_resp[]				= "CoAP Got Response\n";
 const char ant_get_block_send[]			= "CoAP GET block send\n";
 const char ant_get_block_send_done[]	= "CoAP GET block send done\n";
+
+static void __attribute__((noreturn)) task_fatal_error()
+{
+	ESP_LOGE(TAG, "Exiting task due to fatal error...");
+	(void)vTaskDelete(NULL);
+
+	while (1) {
+		;
+	}
+}
 
 static void coap_message_handler(coap_context_t *ctx, coap_session_t *session,
 							coap_pdu_t *sent, coap_pdu_t *received,
@@ -137,16 +158,6 @@ clean_up:
 	resp_wait = 0;
 }
 
-static void __attribute__((noreturn)) task_fatal_error()
-{
-	ESP_LOGE(TAG, "Exiting task due to fatal error...");
-	(void)vTaskDelete(NULL);
-
-	while (1) {
-		;
-	}
-}
-
 void sq_main(void *p)
 {
 	coap_context_t  *ctx = NULL;
@@ -158,6 +169,8 @@ void sq_main(void *p)
 	const esp_partition_t	*update_partition = NULL;
 	const esp_partition_t	*configured = esp_ota_get_boot_partition();
 	const esp_partition_t	*running = esp_ota_get_running_partition();
+
+	uint32_t upd_btn;
 
 	if (configured != running) {
 		ESP_LOGW(TAG, "Configured OTA boot partition at offset 0x%08x, but running from offset 0x%08x",
@@ -212,8 +225,8 @@ void sq_main(void *p)
 #ifdef CONFIG_SQ_MAIN_DBG
 	ESP_LOGI(TAG, "Writing to partition subtype %d at offset 0x%x",
 			update_partition->subtype, update_partition->address);
-	assert(update_partition != NULL);
 #endif
+	assert(update_partition != NULL);
 
 	err = esp_ota_begin(update_partition, OTA_SIZE_UNKNOWN, &update_handle);
 	if (err != ESP_OK) {
@@ -237,6 +250,14 @@ void sq_main(void *p)
 	coap_add_optlist_pdu(request, &optlist);
 
 	resp_wait = 1;
+
+	/* Wait for user input before retrieving the firmware */
+#ifdef CONFIG_SQ_MAIN_DBG
+	ESP_LOGI(TAG, "Waiting for user to initiate update...");
+#endif
+	while (1) {
+		if (xQueueReceive(gpio_evt_queue, &upd_btn, portMAX_DELAY)) break;
+	}
 
 	/* Perform GET request to retrieve new firmware.
 	 * The data retrieval is done in the message handler.
@@ -263,6 +284,32 @@ void sq_main(void *p)
 		}
 	}
 
+	if (esp_ota_end(update_handle) != ESP_OK) {
+		ESP_LOGE(TAG, "esp_ota_end failed!");
+		sq_coap_cleanup(ctx, session);
+		task_fatal_error();
+	}
+
+	if (esp_partition_check_identity(esp_ota_get_running_partition(), update_partition) == true) {
+		ESP_LOGI(TAG, "The current running firmware is same as the firmware just downloaded");
+		int i = 0;
+		ESP_LOGI(TAG, "When a new firmware is available on the server, press the reset button to download it");
+		while(1) {
+			ESP_LOGI(TAG, "Waiting for a new firmware ... %d", ++i);
+			vTaskDelay(2000 / portTICK_PERIOD_MS);
+		}
+	}
+
+	err = esp_ota_set_boot_partition(update_partition);
+	if (err != ESP_OK) {
+		ESP_LOGE(TAG, "esp_ota_set_boot_partition failed (%s)!", esp_err_to_name(err));
+		sq_coap_cleanup(ctx, session);
+		task_fatal_error();
+	}
+
+	ESP_LOGI(TAG, "Prepare to restart system!");
+	esp_restart();
+
 #ifdef CONFIG_SQ_MAIN_DBG
 	ESP_LOGI(TAG, "[%s] - Response handled, exiting", __FUNCTION__);
 #endif
@@ -281,6 +328,38 @@ void print_sha256 (const uint8_t *image_hash, const char *label)
 	ESP_LOGI(TAG, "%s: %s", label, hash_print);
 }
 
+void blink(void *pvParameter)
+{
+#ifdef CONFIG_SQ_MAIN_DBG
+	ESP_LOGI(TAG, "Starting blink task...");
+#endif
+
+	gpio_config_t io_conf = {
+		.pin_bit_mask	= (1ULL << LED),
+		.mode			= GPIO_MODE_OUTPUT,
+		.pull_up_en		= 0,
+		.pull_down_en	= 0,
+		.intr_type		= GPIO_PIN_INTR_DISABLE
+	};
+
+	gpio_config(&io_conf);
+
+	while (1) {
+		gpio_set_level(LED, 1);
+		vTaskDelay(500 / portTICK_RATE_MS);
+		gpio_set_level(LED, 0);
+		vTaskDelay(500 / portTICK_RATE_MS);
+	}
+}
+
+static void gpio_isr_handler(void *arg)
+{
+	uint32_t gpio_num = (uint32_t) arg;
+	if (gpio_num == UPDATE_BTN) {
+		xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
+	}
+}
+
 void app_main(void)
 {
 #ifndef CONFIG_SQ_MAIN_DBG
@@ -289,7 +368,16 @@ void app_main(void)
 	esp_log_level_set("*", ESP_LOG_NONE);
 #endif
 
-	ESP_ERROR_CHECK(nvs_flash_init());
+	/* Initialize NVS. */
+	esp_err_t err = nvs_flash_init();
+	if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+		// OTA app partition table has a smaller NVS partition size than the non-OTA
+		// partition table. This size mismatch may cause NVS initialization to fail.
+		// If this happens, we erase NVS partition and initialize NVS again.
+		ESP_ERROR_CHECK(nvs_flash_erase());
+		err = nvs_flash_init();
+	}
+	ESP_ERROR_CHECK( err );
 
 	tcpip_adapter_init();
 	ESP_ERROR_CHECK(esp_event_loop_create_default());
@@ -298,5 +386,21 @@ void app_main(void)
 
 	sq_uart_init();
 
+	/* Set up and configure button interrupt */
+	gpio_evt_queue = xQueueCreate(2,  sizeof(uint32_t));
+
+	gpio_config_t io_conf = {
+		.pin_bit_mask	= (1ULL << UPDATE_BTN),
+		.mode			= GPIO_MODE_INPUT,
+		.pull_up_en		= 0,
+		.pull_down_en	= 1,
+		.intr_type		= GPIO_PIN_INTR_POSEDGE
+	};
+
+	gpio_config(&io_conf);
+	gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
+	gpio_isr_handler_add(UPDATE_BTN, gpio_isr_handler, (void *) UPDATE_BTN);
+
+	xTaskCreate(blink, "blink_task", 2048, NULL, 10, NULL);
 	xTaskCreate(sq_main, "coaps_fota", 8 * 1024, NULL, 5, NULL);
 }
