@@ -92,10 +92,12 @@ static void coap_message_handler(coap_context_t *ctx, coap_session_t *session,
 			uint16_t blktype = opt_iter.type;
 
 			if (coap_opt_block_num(block_opt) == 0) {
-				printf("Received block:\n");
+#ifdef CONFIG_SQ_MAIN_DBG
+				ESP_LOGI(TAG, "[%s] - Got block message", __FUNCTION__);
+#endif
 			}
 			if (coap_get_data(received, &data_len, &data)) {
-				printf("%.*s", (int)data_len, data);
+				//printf("%.*s", (int)data_len, data);
 
 				/* Write firmware to FLASH */
 				err = esp_ota_write(update_handle, (const void *) data, data_len);
@@ -150,7 +152,7 @@ static void coap_message_handler(coap_context_t *ctx, coap_session_t *session,
 			printf("\n");
 		} else {
 			if (coap_get_data(received, &data_len, &data)) {
-				printf("Received: %.*s\n", (int)data_len, data);
+				//printf("Received: %.*s\n", (int)data_len, data);
 			}
 		}
 	}
