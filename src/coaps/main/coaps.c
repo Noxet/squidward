@@ -182,7 +182,7 @@ void sq_main(void *p)
 		}
 		request->type = COAP_MESSAGE_CON;
 		request->tid = coap_new_message_id(session);
-		request->code = COAP_REQUEST_PUT;
+		request->code = COAP_REQUEST_POST;
 		coap_add_optlist_pdu(request, &optlist);
 
 		/* Add POST data, double the size each time */
