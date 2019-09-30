@@ -4,10 +4,10 @@
 
 #include <sys/param.h>
 
-const char ant_setup_plain[]	= "Setting up plain conn";
-const char ant_setup_psk[]		= "Setting up PSK conn";
-const char ant_setup_pki[]		= "Setting up PKI conn";
-const char ant_setup_done[]		= "Setup done";
+const char ant_setup_plain[]	= "Setting up plain conn\n";
+const char ant_setup_psk[]		= "Setting up PSK conn\n";
+const char ant_setup_pki[]		= "Setting up PKI conn\n";
+const char ant_setup_done[]		= "Setup done\n";
 
 #ifdef CONFIG_COAP_MBEDTLS_PKI
 
