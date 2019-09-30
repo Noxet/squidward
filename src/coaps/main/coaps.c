@@ -27,7 +27,7 @@ static int wait_ms;
 const char *TAG = "coaps";
 
 /* Annotation strings */
-const char ant_post_send[32]			= "CoAP POST send";
+const char ant_post_send[32]			= "CoAP POST send\n";
 const char ant_post_send_done[]			= "CoAP POST send done\n";
 const char ant_get_block_send[]			= "CoAP GET block send\n";
 const char ant_get_block_send_done[]	= "CoAP GET block send done\n";
