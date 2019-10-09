@@ -43,11 +43,11 @@ void sq_uart_send(const char *data, size_t len)
 	/* Turn on output switch for Otii, and transmit an array of bytes for annotation.
 	 * Wait until TX buffer is empty, preventing bogus data to be sent.
 	 */
-	ESP_ERROR_CHECK(uart_wait_tx_done(UART_NUM_0, 100));
+	ESP_ERROR_CHECK(uart_wait_tx_done(UART_NUM_0, 1000));
 	gpio_set_level(CTRL_PIN, 1);
 	int res = uart_write_bytes(UART_NUM_0, data, len);
 	/* Again, wait until finished before turning off the output. */
-	ESP_ERROR_CHECK(uart_wait_tx_done(UART_NUM_0, 100));
+	ESP_ERROR_CHECK(uart_wait_tx_done(UART_NUM_0, 1000));
 	gpio_set_level(CTRL_PIN, 0);
 
 #ifdef CONFIG_SQ_UART_DBG
