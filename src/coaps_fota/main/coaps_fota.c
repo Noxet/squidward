@@ -44,6 +44,7 @@ EventGroupHandle_t wifi_event_group;
 
 static int resp_wait = 1;
 static int wait_ms;
+static unsigned int next_block = 0;
 
 const char *TAG = "coaps_fota";
 
@@ -84,6 +85,7 @@ static void coap_message_handler(coap_context_t *ctx, coap_session_t *session,
 	coap_optlist_t *option;
 	coap_tid_t tid;
 	esp_err_t err;
+	unsigned int block_num;
 
 	if (COAP_RESPONSE_CLASS(received->code) == 2) {
 		/* Need to see if blocked response */
@@ -91,21 +93,38 @@ static void coap_message_handler(coap_context_t *ctx, coap_session_t *session,
 		if (block_opt) {
 			uint16_t blktype = opt_iter.type;
 
-			if (coap_opt_block_num(block_opt) == 0) {
+			block_num = coap_opt_block_num(block_opt);
+
+			if (block_num == 0) {
 #ifdef CONFIG_SQ_MAIN_DBG
 				ESP_LOGI(TAG, "[%s] - Got block message", __FUNCTION__);
 #endif
 			}
+
+			if (block_num != next_block) {
+#ifdef CONFIG_SQ_MAIN_DBG
+				ESP_LOGE(TAG, "[%s] - Got wrong block nr %d, expected block nr %d", __FUNCTION__, block_num, next_block);
+#endif
+				return;
+			}
+
 			if (coap_get_data(received, &data_len, &data)) {
 				//printf("%.*s", (int)data_len, data);
 
 				/* Write firmware to FLASH */
+#ifdef CONFIG_SQ_MAIN_DBG
+				ESP_LOGI(TAG, "Writing %d bytes of OTA data", data_len);
+#endif
 				err = esp_ota_write(update_handle, (const void *) data, data_len);
 				if (err != ESP_OK) {
+					ESP_ERROR_CHECK(err);
 					sq_coap_cleanup(ctx, session);
 					task_fatal_error();
 				}
+
+				next_block++;
 			}
+
 			if (COAP_OPT_BLOCK_MORE(block_opt)) {
 				/* more bit is set */
 
