@@ -49,11 +49,14 @@ static unsigned int next_block = 0;
 const char *TAG = "coaps_fota";
 
 /* Annotation strings */
+const char ant_main[]					= "Device started\n";
 const char ant_get_send[]				= "CoAP GET send\n";
 const char ant_get_send_done[]			= "CoAP GET send done\n";
 const char ant_get_resp[]				= "CoAP Got Response\n";
 const char ant_get_block_send[]			= "CoAP GET block send\n";
 const char ant_get_block_send_done[]	= "CoAP GET block send done\n";
+const char ant_ota_write[]				= "OTA write block\n";
+const char ant_ota_write_done[]			= "OTA write done\n";
 
 static void __attribute__((noreturn)) task_fatal_error()
 {
@@ -115,7 +118,9 @@ static void coap_message_handler(coap_context_t *ctx, coap_session_t *session,
 #ifdef CONFIG_SQ_MAIN_DBG
 				ESP_LOGI(TAG, "Writing %d bytes of OTA data", data_len);
 #endif
+				sq_uart_send(ant_ota_write, sizeof(ant_ota_write));
 				err = esp_ota_write(update_handle, (const void *) data, data_len);
+				sq_uart_send(ant_get_block_send_done, sizeof(ant_ota_write_done));
 				if (err != ESP_OK) {
 					ESP_ERROR_CHECK(err);
 					sq_coap_cleanup(ctx, session);
@@ -406,6 +411,7 @@ void app_main(void)
 	wifi_init();
 
 	sq_uart_init();
+	sq_uart_send(ant_main, sizeof(ant_main));
 
 	/* Set up and configure button interrupt */
 	gpio_evt_queue = xQueueCreate(2,  sizeof(uint32_t));
