@@ -11,7 +11,7 @@ EXTRA_COMPONENT_DIRS += $(SQUIDWARD_PATH)/components/sq_uart
 
 include $(IDF_PATH)/make/project.mk
 
-CONFIGS = sdk-none-dbg sdk-psk-dbg sdk-pki-dbg
+CONFIGS = sdk-none sdk-none-dbg sdk-psk sdk-psk-dbg sdk-pki sdk-pki-dbg
 
 builds:
 	mkdir -p binaries
