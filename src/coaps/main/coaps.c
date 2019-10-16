@@ -30,7 +30,7 @@ coap_context_t  *ctx = NULL;
 coap_session_t  *session = NULL;
 
 /* Annotation strings */
-const char ant_post_send[32]			= "CoAP POST send\n";
+const char ant_post_send[32]			= "CoAP POST send";
 const char ant_post_send_done[]			= "CoAP POST send done\n";
 const char ant_get_block_send[]			= "CoAP GET block send\n";
 const char ant_get_block_send_done[]	= "CoAP GET block send done\n";
@@ -172,11 +172,13 @@ int sq_coap_send(unsigned char *msg, int msglen)
 
 void sq_main(void *p)
 {
+#define ANT_BUF_SIZE 64
+	char annotation_msg[ANT_BUF_SIZE];
+
 	/* Initialize data to be sent */
 	for (int i = 0; i < POST_SIZE; i++) {
 		post_data[i] = 'a';
 	}
-
 
 	int res;
 
@@ -226,9 +228,13 @@ void sq_main(void *p)
 
 	int num_pkts = 2;
 	for (int i = 0; i < 4; i++) {
+		snprintf(annotation_msg, ANT_BUF_SIZE, "%s %d bytes\n", ant_post_send, num_pkts * 1024);
+		sq_uart_send(annotation_msg, strlen(annotation_msg));
 		for (int j = 0; j < num_pkts; j++) {
 			if (sq_coap_send(post_data, 1024) != 0) goto exit;
 		}
+		sq_uart_send(ant_post_send_done, sizeof(ant_post_send_done));
+
 		num_pkts *= 2;
 		sleep(1);
 	}
