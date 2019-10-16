@@ -394,6 +394,9 @@ void app_main(void)
 	esp_log_level_set("*", ESP_LOG_NONE);
 #endif
 
+	sq_uart_init();
+	sq_uart_send(ant_main, sizeof(ant_main));
+
 	/* Initialize NVS. */
 	esp_err_t err = nvs_flash_init();
 	if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -409,9 +412,6 @@ void app_main(void)
 	ESP_ERROR_CHECK(esp_event_loop_create_default());
 
 	wifi_init();
-
-	sq_uart_init();
-	sq_uart_send(ant_main, sizeof(ant_main));
 
 	/* Set up and configure button interrupt */
 	gpio_evt_queue = xQueueCreate(2,  sizeof(uint32_t));
