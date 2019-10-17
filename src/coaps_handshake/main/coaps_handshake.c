@@ -34,6 +34,8 @@ const char ant_post_send[32]			= "CoAP POST send";
 const char ant_post_send_done[]			= "CoAP POST send done\n";
 const char ant_get_block_send[]			= "CoAP GET block send\n";
 const char ant_get_block_send_done[]	= "CoAP GET block send done\n";
+const char ant_fin[]					= "CoAP shut down connection done\n";
+const char ant_conn_setup[]				= "CoAP set up connection\n";
 
 #define POST_SIZE 16
 unsigned char post_data[POST_SIZE];
@@ -197,6 +199,7 @@ void sq_main(void *p)
 	for (int i = 0; i < 10; i++) {
 
 		while (1) {
+			sq_uart_send(ant_conn_setup, sizeof(ant_conn_setup));
 			res = sq_coap_init(&ctx, &session);
 			if (res == SQ_COAP_OK) {
 #ifdef CONFIG_SQ_MAIN_DBG
@@ -230,6 +233,7 @@ void sq_main(void *p)
 #endif	
 		
 		sq_coap_cleanup(ctx, session);
+		sq_uart_send(ant_fin, sizeof(ant_fin));
 	}
 
 exit:
