@@ -4,7 +4,7 @@
 #include <string.h>
 #include "esp_system.h"
 #include "nvs_flash.h"
-#include "esp_event_loop.h"
+#include "esp_event.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -17,6 +17,7 @@
 #include "lwip/netdb.h"
 
 #include "esp_log.h"
+#include "esp_tls.h"
 #include "mqtt_client.h"
 
 #include "squidward/sq_wifi.h"
@@ -50,6 +51,14 @@ extern const uint8_t mqtt_server_ca_pem_start[]	asm("_binary_mqtt_server_ca_ecds
 extern const uint8_t mqtt_server_ca_pem_end[]	asm("_binary_mqtt_server_ca_ecdsa_pem_end");
 #endif
 //#endif
+
+#ifdef CONFIG_SQ_MQTT_PSK
+	struct psk_key_hint psk_key = {
+		.key = (uint8_t *) "password",
+		.key_size = 8,
+		.hint = "esp32"
+	};
+#endif
 
 static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
 {
@@ -123,7 +132,12 @@ static void mqtt_app_start(void)
 	const esp_mqtt_client_config_t mqtt_cfg = {
 		.uri = CONFIG_BROKER_URI,
 		.event_handle = mqtt_event_handler,
+#ifdef CONFIG_SQ_MQTT_PKI
 		.cert_pem = (const char *)mqtt_server_ca_pem_start,
+#endif
+#ifdef CONFIG_SQ_MQTT_PSK
+		.psk_hint_key = &psk_key,
+#endif
 	};
 
 	/* initialize data buffer */
