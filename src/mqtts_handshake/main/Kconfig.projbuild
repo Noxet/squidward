@@ -1,0 +1,47 @@
+menu "Squidward MQTTs Main Configuration"
+
+    config SQ_MAIN_DBG
+		boolean "Print debug logs"
+		default n
+		help
+			Turn on or off logs from the main code
+
+	config BROKER_URI
+        string "Broker URL"
+        default "mqtts://iot.eclipse.org:8883"
+        help
+            URL of an mqtt broker which this example connects to.
+		
+	choice SQ_MQTT_ENC_MODE
+		prompt "MQTT encryption method"
+		default SQ_MQTT_PSK
+		help
+			Select which encryption method to be used if setting up
+			a secure connection
+
+			- Encrypt using Pre-Shared Keys (PSK if mqtts://)
+			- Encrypt using Public Key Infrastructure (PKI if mqtts://)
+
+		config SQ_MQTT_PSK
+			bool "Pre-Shared Keys"
+
+		config SQ_MQTT_PKI
+			bool "PKI certificates"
+
+	endchoice
+
+	choice SQ_MQTT_CERT_MODE
+		prompt "MQTT certificate type"
+		default SQ_MQTT_CERT_RSA
+		help
+			Select which certificate type to be used (default RSA)
+
+		config SQ_MQTT_CERT_RSA
+			bool "RSA keys"
+
+		config SQ_MQTT_CERT_ECDSA
+			bool "ECDSA keys"
+	
+	endchoice
+
+endmenu
