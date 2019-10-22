@@ -8,5 +8,5 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
 project(mqtts_handshake)
 
-target_add_binary_data(mqtt_ssl.elf "main/mqtt_server_ca_rsa.pem" TEXT)
-target_add_binary_data(mqtt_ssl.elf "main/mqtt_server_ca_ecdsa.pem" TEXT)
+target_add_binary_data(mqtts_handshake.elf "main/mqtt_server_ca_rsa.pem" TEXT)
+target_add_binary_data(mqtts_handshake.elf "main/mqtt_server_ca_ecdsa.pem" TEXT)
