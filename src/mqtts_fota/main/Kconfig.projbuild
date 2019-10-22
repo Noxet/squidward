@@ -11,16 +11,37 @@ menu "Squidward MQTTs Main Configuration"
         default "mqtts://iot.eclipse.org:8883"
         help
             URL of an mqtt broker which this example connects to.
+		
+	choice SQ_MQTT_ENC_MODE
+		prompt "MQTT encryption method"
+		default SQ_MQTT_PSK
+		help
+			Select which encryption method to be used if setting up
+			a secure connection
 
-    config BROKER_CERTIFICATE_OVERRIDE
-        string "Broker certificate override"
-        default ""
-        help
-            Please leave empty if broker certificate included from a textfile; otherwise fill in a base64 part of PEM
-            format certificate
+			- Encrypt using Pre-Shared Keys (PSK if mqtts://)
+			- Encrypt using Public Key Infrastructure (PKI if mqtts://)
 
-    config BROKER_CERTIFICATE_OVERRIDDEN
-        bool
-        default y if BROKER_CERTIFICATE_OVERRIDE != ""
+		config SQ_MQTT_PSK
+			bool "Pre-Shared Keys"
+
+		config SQ_MQTT_PKI
+			bool "PKI certificates"
+
+	endchoice
+
+	choice SQ_MQTT_CERT_MODE
+		prompt "MQTT certificate type"
+		default SQ_MQTT_CERT_RSA
+		help
+			Select which certificate type to be used (default RSA)
+
+		config SQ_MQTT_CERT_RSA
+			bool "RSA keys"
+
+		config SQ_MQTT_CERT_ECDSA
+			bool "ECDSA keys"
+	
+	endchoice
 
 endmenu
