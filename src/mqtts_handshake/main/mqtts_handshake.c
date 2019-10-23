@@ -23,7 +23,7 @@
 #include "squidward/sq_wifi.h"
 #include "squidward/sq_uart.h"
 
-const char *TAG = "mqtts";
+const char *TAG = "mqtts_handshake";
 
 #define MQTT_TOPIC "/squidward"
 
