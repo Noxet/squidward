@@ -280,6 +280,8 @@ void mqtts_fota(void *pvParameter)
 		esp_task_wdt_reset();
 	}
 
+	sq_uart_send(ant_ota_write_done, sizeof(ant_ota_write_done));
+
 #ifdef CONFIG_SQ_MAIN_DBG
 	ESP_LOGI(TAG, "[%s] - Firmware received, checking ...", __FUNCTION__);
 #endif
