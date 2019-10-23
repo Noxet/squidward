@@ -40,8 +40,7 @@ const char *TAG = "mqtts_fota";
 
 static volatile int fota_wait = 1;
 
-static xQueueHandle gpio_evt_queue = NULL;
-#define LED 		GPIO_NUM_19
+#define LED GPIO_NUM_18
 
 /* 0 means a non-shared interrupt level of 1, 2, or 3.
  * see the esp_intr_alloc.h file for the esp_alloc_intrstatus function.
@@ -101,7 +100,7 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
 	esp_mqtt_client_handle_t client = event->client;
 	int msg_id;
 	esp_err_t err;
-	int total_written = 0;
+	static int total_written = 0;
 	int total_fota_size = 0;
 
 	// your_context_t *context = event->context;
@@ -129,16 +128,17 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
 
 			break;
 		case MQTT_EVENT_UNSUBSCRIBED:
-			ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
 			break;
 		case MQTT_EVENT_PUBLISHED:
-//#ifdef CONFIG_SQ_MAIN_DBG
+#ifdef CONFIG_SQ_MAIN_DBG
 			ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
-//#endif
+#endif
 			break;
 		case MQTT_EVENT_DATA:
+#ifdef CONFIG_SQ_MAIN_DBG
 			ESP_LOGI(TAG, "MQTT_EVENT_DATA");
-			printf("Total length: %d\r\n", event->total_data_len);
+#endif
+			//printf("Total length: %d\r\n", event->total_data_len);
 			//printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
 			//printf("DATA=%.*s\r\n", event->data_len, event->data);
 
@@ -146,7 +146,7 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
 
 			/* Write firmware to FLASH */
 #ifdef CONFIG_SQ_MAIN_DBG
-			ESP_LOGI(TAG, "Writing %d bytes of OTA data", event->data_len);
+			ESP_LOGI(TAG, "[%s] - Writing %d bytes of OTA data", __FUNCTION__, event->data_len);
 #endif
 			sq_uart_send(ant_ota_write, sizeof(ant_ota_write));
 			err = esp_ota_write(update_handle, (const void *) event->data, event->data_len);
@@ -156,7 +156,7 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
 			}
 
 			total_written += event->data_len;
-			printf("Total written: %d\n", total_written);
+
 			/* All data written, let the main function know */
 			if (total_written >= total_fota_size) {
 				fota_wait = 0;
@@ -270,8 +270,8 @@ void mqtts_fota(void *pvParameter)
 		task_fatal_error();
 	}
 #ifdef CONFIG_SQ_MAIN_DBG
-	ESP_LOGI(TAG, "esp_ota_begin succeeded");
-	ESP_LOGI(TAG, "Awaiting firmware ...");
+	ESP_LOGI(TAG, "[%s] - esp_ota_begin succeeded", __FUNCTION__);
+	ESP_LOGI(TAG, "[%s] - Awaiting firmware ...", __FUNCTION__);
 #endif
 
 	/* Wait until firmware is received */
@@ -279,6 +279,10 @@ void mqtts_fota(void *pvParameter)
 	while (fota_wait) {
 		esp_task_wdt_reset();
 	}
+
+#ifdef CONFIG_SQ_MAIN_DBG
+	ESP_LOGI(TAG, "[%s] - Firmware received, checking ...", __FUNCTION__);
+#endif
 
 	if (esp_ota_end(update_handle) != ESP_OK) {
 		ESP_LOGE(TAG, "esp_ota_end failed!");
