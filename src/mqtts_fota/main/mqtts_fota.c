@@ -98,7 +98,6 @@ static void __attribute__((noreturn)) task_fatal_error()
 static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
 {
 	esp_mqtt_client_handle_t client = event->client;
-	int msg_id;
 	esp_err_t err;
 	static int total_written = 0;
 	int total_fota_size = 0;
@@ -112,7 +111,7 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
 #endif
 
 			sq_uart_send(ant_sub, sizeof(ant_sub));
-			msg_id = esp_mqtt_client_subscribe(client, "/updates", 0);
+			esp_mqtt_client_subscribe(client, "/updates", 0);
 			sq_uart_send(ant_sub_done, sizeof(ant_sub_done));
 			break;
 		case MQTT_EVENT_DISCONNECTED:
@@ -242,8 +241,6 @@ void mqtts_fota(void *pvParameter)
 	ESP_LOGI(TAG, "Running partition type %d subtype %d (offset 0x%08x)",
 			running->type, running->subtype, running->address);
 
-	int res;
-
 	/* Wait for WiFi connection */
 #ifdef CONFIG_SQ_MAIN_DBG
 	ESP_LOGI(TAG, "[%s] - Wait for WiFi...", __FUNCTION__);
@@ -277,7 +274,7 @@ void mqtts_fota(void *pvParameter)
 	/* Wait until firmware is received */
 
 	while (fota_wait) {
-		esp_task_wdt_reset();
+		vTaskDelay(10 / portTICK_PERIOD_MS);
 	}
 
 	sq_uart_send(ant_ota_write_done, sizeof(ant_ota_write_done));
