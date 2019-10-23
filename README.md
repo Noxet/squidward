@@ -1,5 +1,8 @@
 # squidward
-A research project at Lund University investigating IoT protocols with added security
+A research project at Lund University investigating IoT protocols and the energy cost of added security.
+The protocols analyzed are CoAP and MQTT with and without (D)TLS, using both PSK and PKI.
+
+Applications for different tests are located in the `src` folder.
 
 # Set up
 
