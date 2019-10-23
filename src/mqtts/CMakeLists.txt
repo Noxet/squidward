@@ -8,4 +8,5 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
 project(mqtts)
 
-target_add_binary_data(mqtts.elf "main/mqtt_server_ca.pem" TEXT)
+target_add_binary_data(mqtts.elf "main/mqtt_server_ca_rsa.pem" TEXT)
+target_add_binary_data(mqtts.elf "main/mqtt_server_ca_ecdsa.pem" TEXT)

@@ -37,12 +37,18 @@ const char ant_pub[]		= "MQTT publish";
 const char ant_pub_done[]	= "MQTT publish done\n";
 
 
-#if CONFIG_BROKER_CERTIFICATE_OVERRIDDEN == 1
-static const uint8_t mqtt_server_ca_pem_start[]  = "-----BEGIN CERTIFICATE-----\n" CONFIG_BROKER_CERTIFICATE_OVERRIDE "\n-----END CERTIFICATE-----";
-#else
-extern const uint8_t mqtt_server_ca_pem_start[]   asm("_binary_mqtt_server_ca_pem_start");
+//#if CONFIG_BROKER_CERTIFICATE_OVERRIDDEN == 1
+//static const uint8_t mqtt_server_ca_pem_start[]  = "-----BEGIN CERTIFICATE-----\n" CONFIG_BROKER_CERTIFICATE_OVERRIDE "\n-----END CERTIFICATE-----";
+//#else
+#ifdef CONFIG_SQ_MQTT_CERT_RSA
+extern const uint8_t mqtt_server_ca_pem_start[]	asm("_binary_mqtt_server_ca_rsa_pem_start");
+extern const uint8_t mqtt_server_ca_pem_end[]	asm("_binary_mqtt_server_ca_rsa_pem_end");
 #endif
-extern const uint8_t mqtt_server_ca_pem_end[]   asm("_binary_mqtt_server_ca_pem_end");
+#ifdef CONFIG_SQ_MQTT_CERT_ECDSA
+extern const uint8_t mqtt_server_ca_pem_start[]	asm("_binary_mqtt_server_ca_ecdsa_pem_start");
+extern const uint8_t mqtt_server_ca_pem_end[]	asm("_binary_mqtt_server_ca_ecdsa_pem_end");
+#endif
+//#endif
 
 static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
 {
